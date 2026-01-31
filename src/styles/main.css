@@ -26,6 +26,14 @@ body {
   line-height: 1.6;
   color: var(--text-dark);
   background-color: var(--white);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.app {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Navigation */
@@ -547,4 +555,54 @@ section {
 
 .fade-in {
   animation: fadeIn 0.6s ease-out;
+}
+
+/* Checkout Page Styles */
+.checkout-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.payment-option:hover {
+  border-color: var(--primary-color);
+}
+
+.payment-option.selected {
+  border-color: var(--primary-color);
+  background: rgba(217, 83, 30, 0.05);
+}
+
+.order-summary {
+  background: #f8f8f8;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--primary-color);
 }

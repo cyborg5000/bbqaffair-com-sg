@@ -1,7 +1,28 @@
-import { menuPackages } from '../data/menu';
-import { Star } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { menuPackages, addOns } from '../data/menu';
+import { Star, ShoppingCart } from 'lucide-react';
 
 function MenuSection() {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (pkg) => {
+    addToCart({
+      id: pkg.id,
+      name: pkg.name,
+      price: pkg.price,
+      description: pkg.description
+    });
+  };
+
+  const handleAddAddon = (addon) => {
+    addToCart({
+      id: `addon-${addon.name}`,
+      name: addon.name,
+      price: addon.price,
+      description: addon.description
+    });
+  };
+
   return (
     <section className="menu-section" id="menu">
       <h2 className="section-title">Our BBQ Packages</h2>
@@ -32,11 +53,55 @@ function MenuSection() {
               ))}
             </ul>
             
-            <a href="/contact" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
-              Book This Package
-            </a>
+            <button 
+              onClick={() => handleAddToCart(pkg)}
+              className="btn btn-primary" 
+              style={{ 
+                width: '100%', 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <ShoppingCart size={20} />
+              Add to Cart
+            </button>
           </div>
         ))}
+      </div>
+
+      {/* Add-ons Section */}
+      <div style={{ marginTop: '4rem' }}>
+        <h2 className="section-title">Optional Add-Ons</h2>
+        <p className="section-subtitle">
+          Enhance your BBQ experience with these additional services
+        </p>
+        
+        <div className="addons-grid">
+          {addOns.map((addon, index) => (
+            <div key={index} className="addon-card">
+              <h4>{addon.name}</h4>
+              <div className="addon-price">{addon.price}</div>
+              <p>{addon.description}</p>
+              <button 
+                onClick={() => handleAddAddon(addon)}
+                className="btn btn-primary"
+                style={{ 
+                  width: '100%', 
+                  marginTop: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <ShoppingCart size={18} />
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

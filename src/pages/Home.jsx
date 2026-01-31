@@ -1,4 +1,5 @@
 import Hero from '../components/Hero';
+import VisionMission from '../components/VisionMission';
 import MenuSection from '../components/MenuSection';
 import AddOns from '../components/AddOns';
 import AboutSection from '../components/AboutSection';
@@ -8,6 +9,7 @@ function Home() {
   return (
     <>
       <Hero />
+      <VisionMission />
       <MenuSection />
       <AddOns />
       <AboutSection />
