@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 
@@ -5,6 +6,7 @@ export default function AdminLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAdminAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -20,7 +22,15 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="admin-layout">
-      <aside className="admin-sidebar">
+      <button 
+        className="mobile-menu-toggle"
+        onClick={() => setMenuOpen(!menuOpen)}
+        aria-label="Toggle menu"
+      >
+        {menuOpen ? '✕' : '☰'}
+      </button>
+
+      <aside className={`admin-sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="admin-logo">
           <h2>BBQAffair</h2>
           <span>Admin Panel</span>
@@ -32,6 +42,7 @@ export default function AdminLayout({ children }) {
               key={item.path}
               to={item.path}
               className={`admin-nav-item ${location.pathname === item.path ? 'active' : ''}`}
+              onClick={() => setMenuOpen(false)}
             >
               <span>{item.icon}</span>
               {item.label}
@@ -44,7 +55,7 @@ export default function AdminLayout({ children }) {
         </button>
       </aside>
 
-      <main className="admin-main">
+      <main className="admin-main" onClick={() => setMenuOpen(false)}>
         {children}
       </main>
     </div>
