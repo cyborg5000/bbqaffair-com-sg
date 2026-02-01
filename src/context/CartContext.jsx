@@ -1,10 +1,23 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]);
+  // Initialize from localStorage if available
+  const [cartItems, setCartItems] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('bbqaffair-cart');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Persist to localStorage whenever cart changes
+  useEffect(() => {
+    localStorage.setItem('bbqaffair-cart', JSON.stringify(cartItems));
+  }, [cartItems]);
 
   const addToCart = useCallback((item) => {
     setCartItems(prev => {
@@ -37,6 +50,7 @@ export function CartProvider({ children }) {
 
   const clearCart = useCallback(() => {
     setCartItems([]);
+    localStorage.removeItem('bbqaffair-cart');
   }, []);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
