@@ -21,19 +21,30 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.6;
   color: var(--text-dark);
   background-color: var(--white);
   overflow-x: hidden;
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
 }
 
 .app {
   width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
+}
+
+main {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Navigation */
@@ -531,6 +542,7 @@ section {
   
   .nav-container {
     padding: 1rem;
+    max-width: 100%;
   }
   
   .logo {
@@ -545,12 +557,26 @@ section {
     font-size: 1.1rem;
   }
   
+  .hero {
+    padding: 6rem 1rem 3rem;
+    min-height: auto;
+  }
+  
+  section {
+    padding: 3rem 1rem;
+    width: 100%;
+    max-width: 100%;
+  }
+  
   .menu-grid {
     grid-template-columns: 1fr;
+    max-width: 100%;
+    padding: 0;
   }
   
   .contact-container {
     grid-template-columns: 1fr;
+    padding: 0;
   }
   
   .hero-buttons {
@@ -568,6 +594,7 @@ section {
   
   .menu-card {
     padding: 1.5rem;
+    width: 100%;
   }
   
   .menu-price {
@@ -576,18 +603,23 @@ section {
   
   .addons-grid {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
   
   .testimonials-grid {
     grid-template-columns: 1fr;
+    max-width: 100%;
   }
   
   .checkout-container {
     grid-template-columns: 1fr;
+    padding: 1rem;
+    max-width: 100%;
   }
   
   .features-grid {
     grid-template-columns: repeat(2, 1fr);
+    max-width: 100%;
   }
   
   .footer-content {
@@ -615,6 +647,19 @@ section {
   
   .menu-price {
     font-size: 1.75rem;
+  }
+  
+  section {
+    padding: 2rem 0.75rem;
+  }
+  
+  .hero {
+    padding: 5rem 0.75rem 2rem;
+  }
+  
+  .hero-content {
+    max-width: 100%;
+    padding: 0 0.5rem;
   }
 }
 
