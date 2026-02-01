@@ -509,18 +509,40 @@ section {
   opacity: 0.8;
 }
 
+/* Mobile Navigation */
+.mobile-nav {
+  display: none;
+}
+
+.desktop-nav {
+  display: flex;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-  .nav-links {
+  .desktop-nav {
     display: none;
   }
   
+  .mobile-nav {
+    display: flex;
+    align-items: center;
+  }
+  
+  .nav-container {
+    padding: 1rem;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+  }
+  
   .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
   
   .hero-subtitle {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .menu-grid {
@@ -538,6 +560,61 @@ section {
   .btn {
     width: 100%;
     text-align: center;
+  }
+  
+  .section-title {
+    font-size: 2rem;
+  }
+  
+  .menu-card {
+    padding: 1.5rem;
+  }
+  
+  .menu-price {
+    font-size: 2rem;
+  }
+  
+  .addons-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .checkout-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 1.75rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+  
+  .section-title {
+    font-size: 1.75rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .menu-price {
+    font-size: 1.75rem;
   }
 }
 
