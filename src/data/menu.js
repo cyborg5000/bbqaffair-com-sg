@@ -9,7 +9,6 @@ export async function fetchMenuPackages() {
       product_items(item_name)
     `)
     .eq('category', 'package')
-    .eq('active', true)
     .order('price', { ascending: true });
 
   if (error) {
@@ -37,7 +36,6 @@ export async function fetchAddOns() {
     .from('products')
     .select('*')
     .eq('category', 'addon')
-    .eq('active', true)
     .order('price', { ascending: true });
 
   if (error) {
@@ -59,7 +57,6 @@ export async function fetchTestimonials() {
   const { data, error } = await supabase
     .from('testimonials')
     .select('*')
-    .eq('active', true)
     .order('created_at', { ascending: false });
 
   if (error) {

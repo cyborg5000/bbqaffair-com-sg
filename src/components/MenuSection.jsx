@@ -13,20 +13,16 @@ function MenuSection() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Try to fetch from Supabase
+        // Fetch from Supabase (database is source of truth)
         const [pkgs, addons] = await Promise.all([
           fetchMenuPackages(),
           fetchAddOns()
         ]);
 
-        // If data exists, use it; otherwise fallback to static
-        setPackages(pkgs.length > 0 ? pkgs : staticMenuPackages);
-        setAddOns(addons.length > 0 ? addons : staticAddOns);
+        setPackages(pkgs);
+        setAddOns(addons);
       } catch (error) {
         console.error('Error loading menu data:', error);
-        // Fallback to static data
-        setPackages(staticMenuPackages);
-        setAddOns(staticAddOns);
       } finally {
         setLoading(false);
       }
