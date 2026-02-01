@@ -1,9 +1,32 @@
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { staticMenuPackages as menuPackages, staticAddOns as addOns } from '../data/menu';
-import { Star, Check, ShoppingCart } from 'lucide-react';
+import { fetchMenuPackages, fetchAddOns } from '../data/menu';
+import { Star, Check, ShoppingCart, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function Menu() {
   const { addToCart } = useCart();
+  const [packages, setPackages] = useState([]);
+  const [addOns, setAddOns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [pkgs, addons] = await Promise.all([
+          fetchMenuPackages(),
+          fetchAddOns()
+        ]);
+        setPackages(pkgs);
+        setAddOns(addons);
+      } catch (error) {
+        console.error('Error loading menu:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const handleAddToCart = (item) => {
     addToCart({
@@ -14,6 +37,14 @@ function Menu() {
     });
   };
 
+  if (loading) {
+    return (
+      <div style={{ paddingTop: '80px', textAlign: 'center', padding: '4rem' }}>
+        <p>Loading menu...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ paddingTop: '80px' }}>
       <section className="menu-section" style={{ paddingTop: '3rem' }}>
@@ -23,7 +54,7 @@ function Menu() {
         </p>
         
         <div className="menu-grid">
-          {menuPackages.map((pkg) => (
+          {packages.map((pkg) => (
             <div key={pkg.id} className={`menu-card ${pkg.popular ? 'popular' : ''}`}>
               {pkg.popular && (
                 <div className="popular-badge">
@@ -32,36 +63,69 @@ function Menu() {
                 </div>
               )}
               
+              {pkg.image && (
+                <img 
+                  src={pkg.image} 
+                  alt={pkg.name}
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    objectFit: 'cover',
+                    borderRadius: '8px',
+                    marginBottom: '1rem'
+                  }}
+                />
+              )}
+              
               <h3>{pkg.name}</h3>
               <div className="menu-price">
-                {pkg.price}<span>{pkg.perPerson}</span>
+                {pkg.price}<span>{pkg.perPerson || '/person'}</span>
               </div>
-              <p className="min-pax">Minimum {pkg.minPax} pax</p>
+              {pkg.minPax && <p className="min-pax">Minimum {pkg.minPax} pax</p>}
               <p>{pkg.description}</p>
               
-              <ul className="menu-items">
-                {pkg.items.map((item, index) => (
-                  <li key={index}>
-                    <Check size={16} style={{ color: 'var(--success)', marginRight: '8px' }} />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              {pkg.items && pkg.items.length > 0 && (
+                <ul className="menu-items">
+                  {pkg.items.map((item, index) => (
+                    <li key={index}>
+                      <Check size={16} style={{ color: 'var(--success)', marginRight: '8px' }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
               
-              <button 
-                onClick={() => handleAddToCart(pkg)}
-                className="btn btn-primary" 
-                style={{ 
-                  width: '100%', 
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <ShoppingCart size={20} />
-                Add to Cart
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <Link 
+                  to={`/product/${pkg.id}`}
+                  className="btn btn-secondary"
+                  style={{ 
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <Eye size={18} />
+                  Details
+                </Link>
+                <button 
+                  onClick={() => handleAddToCart(pkg)}
+                  className="btn btn-primary" 
+                  style={{ 
+                    flex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <ShoppingCart size={20} />
+                  Add to Cart
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -74,8 +138,8 @@ function Menu() {
         </p>
         
         <div className="addons-grid">
-          {addOns.map((addon, index) => (
-            <div key={index} className="addon-card">
+          {addOns.map((addon) => (
+            <div key={addon.id || addon.name} className="addon-card">
               <h4>{addon.name}</h4>
               <div className="addon-price">{addon.price}</div>
               <p>{addon.description}</p>
