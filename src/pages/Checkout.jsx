@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { CreditCard, QrCode, ArrowLeft, Check } from 'lucide-react';
+import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
 
 function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,6 +15,15 @@ function Checkout() {
     notes: ''
   });
   const [orderComplete, setOrderComplete] = useState(false);
+
+  // Wait for cart to load from localStorage
+  useEffect(() => {
+    // Small delay to ensure localStorage is loaded
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,6 +61,18 @@ function Checkout() {
           <a href="/" className="btn btn-primary">
             Return to Home
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading while cart initializes
+  if (isLoading) {
+    return (
+      <div style={{ paddingTop: '100px', minHeight: '60vh', textAlign: 'center' }}>
+        <div style={{ maxWidth: '500px', margin: '0 auto', padding: '2rem' }}>
+          <ShoppingCart size={64} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <p>Loading cart...</p>
         </div>
       </div>
     );
@@ -111,7 +133,7 @@ function Checkout() {
               marginBottom: '2rem'
             }}>
               <h3 style={{ marginBottom: '1.5rem', color: 'var(--secondary-color)' }}>
-                Order Summary
+                Order Summary ({cartItems.length} items)
               </h3>
               
               {cartItems.map(item => (
