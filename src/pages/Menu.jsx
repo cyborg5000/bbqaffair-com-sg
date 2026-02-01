@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { fetchMenuPackages, fetchAddOns } from '../data/menu';
+import { fetchProducts, fetchCategories } from '../data/menu';
 import { Star, Check, ShoppingCart, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import '../styles/menu-categories.css';
+
 
 function Menu() {
   const { addToCart } = useCart();
-  const [packages, setPackages] = useState([]);
-  const [addOns, setAddOns] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [pkgs, addons] = await Promise.all([
-          fetchMenuPackages(),
-          fetchAddOns()
+        const [productsData, categoriesData] = await Promise.all([
+          fetchProducts(),
+          fetchCategories()
         ]);
-        setPackages(pkgs);
-        setAddOns(addons);
+        setProducts(productsData);
+        setCategories(categoriesData);
       } catch (error) {
         console.error('Error loading menu:', error);
       } finally {
@@ -28,6 +31,19 @@ function Menu() {
     loadData();
   }, []);
 
+  // Group products by category
+  const productsByCategory = products.reduce((acc, product) => {
+    const cat = product.category || 'Uncategorized';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(product);
+    return acc;
+  }, {});
+
+  // Filter products if category selected
+  const displayCategories = selectedCategory 
+    ? categories.filter(c => c.name === selectedCategory)
+    : categories;
+
   const handleAddToCart = (item) => {
     addToCart({
       id: item.id,
@@ -35,6 +51,14 @@ function Menu() {
       price: item.price,
       description: item.description
     });
+  };
+
+  const scrollToCategory = (categoryName) => {
+    const element = document.getElementById(`category-${categoryName.replace(/\s+/g, '-')}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setSelectedCategory(categoryName);
   };
 
   if (loading) {
@@ -46,136 +70,181 @@ function Menu() {
   }
 
   return (
-    <div style={{ paddingTop: '80px' }}>
-      <section className="menu-section" style={{ paddingTop: '3rem' }}>
-        <h1 className="section-title">Our BBQ Menu</h1>
-        <p className="section-subtitle">
-          Authentic Singapore BBQ, grilled to perfection for your special events
-        </p>
-        
-        <div className="menu-grid">
-          {packages.map((pkg) => (
-            <div key={pkg.id} className={`menu-card ${pkg.popular ? 'popular' : ''}`}>
-              {pkg.popular && (
-                <div className="popular-badge">
-                  <Star size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                  Most Popular
-                </div>
-              )}
-              
-              {pkg.image && (
-                <img 
-                  src={pkg.image} 
-                  alt={pkg.name}
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    objectFit: 'cover',
-                    borderRadius: '8px',
-                    marginBottom: '1rem'
-                  }}
-                />
-              )}
-              
-              <h3>{pkg.name}</h3>
-              <div className="menu-price">
-                {pkg.price}<span>{pkg.perPerson || '/person'}</span>
-              </div>
-              {pkg.minPax && <p className="min-pax">Minimum {pkg.minPax} pax</p>}
-              <p>{pkg.description}</p>
-              
-              {pkg.items && pkg.items.length > 0 && (
-                <ul className="menu-items">
-                  {pkg.items.map((item, index) => (
-                    <li key={index}>
-                      <Check size={16} style={{ color: 'var(--success)', marginRight: '8px' }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <Link 
-                  to={`/product/${pkg.id}`}
-                  className="btn btn-secondary"
-                  style={{ 
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    textDecoration: 'none'
-                  }}
-                >
-                  <Eye size={18} />
-                  Details
-                </Link>
-                <button 
-                  onClick={() => handleAddToCart(pkg)}
-                  className="btn btn-primary" 
-                  style={{ 
-                    flex: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <ShoppingCart size={20} />
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          ))}
+    <div className="menu-page" style={{ paddingTop: '80px' }}>
+      {/* Categories Sidebar */}
+      <aside className="categories-sidebar">
+        <div className="categories-header">
+          <h3>Categories</h3>
+          <span className="categories-count">{categories.length}</span>
         </div>
-      </section>
-      
-      <section className="addons-section">
-        <h2 className="section-title">Optional Add-Ons</h2>
-        <p className="section-subtitle">
-          Enhance your BBQ experience with these additional services
-        </p>
-        
-        <div className="addons-grid">
-          {addOns.map((addon) => (
-            <div key={addon.id || addon.name} className="addon-card">
-              <h4>{addon.name}</h4>
-              <div className="addon-price">{addon.price}</div>
-              <p>{addon.description}</p>
-              <button 
-                onClick={() => handleAddToCart(addon)}
-                className="btn btn-primary"
-                style={{ 
-                  width: '100%', 
-                  marginTop: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <ShoppingCart size={18} />
-                Add to Cart
-              </button>
-            </div>
+        <nav className="categories-nav">
+          <button 
+            className={`category-btn ${!selectedCategory ? 'active' : ''}`}
+            onClick={() => setSelectedCategory(null)}
+          >
+            <span>🍖</span>
+            All Products
+            <span className="product-count">{products.length}</span>
+          </button>
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              className={`category-btn ${selectedCategory === category.name ? 'active' : ''}`}
+              onClick={() => scrollToCategory(category.name)}
+            >
+              <span>{getCategoryIcon(category.name)}</span>
+              {category.name}
+              <span className="product-count">
+                {productsByCategory[category.name]?.length || 0}
+              </span>
+            </button>
           ))}
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="menu-main">
+        <div className="menu-header">
+          <h1 className="section-title">Our BBQ Menu</h1>
+          <p className="section-subtitle">
+            Authentic Singapore BBQ, grilled to perfection for your special events
+          </p>
         </div>
-      </section>
-      
-      <section style={{ background: 'var(--light-bg)', padding: '4rem 2rem', textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--secondary-color)', marginBottom: '1rem' }}>
-          Need a Custom Package?
-        </h2>
-        <p style={{ marginBottom: '2rem', color: 'var(--text-light)' }}>
-          We can create a tailored package to suit your specific needs and budget.
-        </p>
-        <a href="/contact" className="btn btn-primary">
-          Contact Us for Custom Quote
-        </a>
-      </section>
+
+        {/* Products by Category */}
+        {displayCategories.map((category) => {
+          const categoryProducts = productsByCategory[category.name] || [];
+          if (categoryProducts.length === 0) return null;
+
+          return (
+            <section 
+              key={category.id} 
+              id={`category-${category.name.replace(/\s+/g, '-')}`}
+              className="category-section"
+            >
+              <div className="category-header">
+                <h2>{category.name}</h2>
+                <span className="category-badge">{categoryProducts.length} items</span>
+              </div>
+              
+              <div className="menu-grid">
+                {categoryProducts.map((product) => (
+                  <div key={product.id} className={`menu-card ${product.popular ? 'popular' : ''}`}>
+                    {product.popular && (
+                      <div className="popular-badge">
+                        <Star size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        Most Popular
+                      </div>
+                    )}
+                    
+                    {product.image_url && (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name}
+                        style={{
+                          width: '100%',
+                          height: '200px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          marginBottom: '1rem'
+                        }}
+                      />
+                    )}
+                    
+                    <h3>{product.name}</h3>
+                    <div className="menu-price">
+                      ${product.price.toFixed(2)}
+                      {product.min_pax && <span className="min-pax"> (min {product.min_pax} pax)</span>}
+                    </div>
+                    <p>{product.description}</p>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <Link 
+                        to={`/product/${product.id}`}
+                        className="btn btn-secondary"
+                        style={{ 
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        <Eye size={18} />
+                        Details
+                      </Link>
+                      <button 
+                        onClick={() => handleAddToCart(product)}
+                        className="btn btn-primary" 
+                        style={{ 
+                          flex: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <ShoppingCart size={20} />
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* Custom Package CTA */}
+        <section className="custom-package-cta">
+          <h2>Need a Custom Package?</h2>
+          <p>
+            We can create a tailored package to suit your specific needs and budget.
+          </p>
+          <Link to="/contact" className="btn btn-primary">
+            Contact Us for Custom Quote
+          </Link>
+        </section>
+      </main>
     </div>
   );
+}
+
+// Helper function for category icons
+function getCategoryIcon(categoryName) {
+  const icons = {
+    'Special Set 2026': '🎉',
+    'Chef and Service Staff (3 HOUR)': '👨‍🍳',
+    'BBQ Package': '🍖',
+    'Salad': '🥗',
+    'Cooked Food (Mains)': '🍛',
+    'Cooked Food (Sides)': '🥘',
+    'Sides': '🍟',
+    'Pork': '🥓',
+    'Chicken': '🍗',
+    'Lamb': '🍖',
+    'Premium Beef': '🥩',
+    'Seafood': '🦐',
+    'Baby Lobster ( Seafood)': '🦞',
+    'Sausage': '🌭',
+    'Otah': '🐟',
+    'Satay': '🍢',
+    'Burger Set': '🍔',
+    'Vegetarian': '🥬',
+    'Lok Lok': '🍡',
+    'Dessert': '🍰',
+    'Dessert Tarts': '🥧',
+    'Sauces': '🥫',
+    'Drinks': '🥤',
+    'Dry Goods': '📦',
+    'Live station': '🔥',
+    'Rental Service': '🏕️',
+    'package': '📦',
+    'addon': '➕',
+    'service': '🔧'
+  };
+  return icons[categoryName] || '🍽️';
 }
 
 export default Menu;

@@ -1,0 +1,249 @@
+/* Menu Categories Sidebar Styles */
+
+.menu-page {
+  display: flex;
+  min-height: calc(100vh - 80px);
+  background: #f8f8f8;
+}
+
+/* Categories Sidebar */
+.categories-sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e0e0e0;
+  position: fixed;
+  top: 80px;
+  left: 0;
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+  z-index: 10;
+  padding: 1.5rem 0;
+}
+
+.categories-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem 1rem;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 1rem;
+}
+
+.categories-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #1a1a1a;
+}
+
+.categories-count {
+  background: #c41e3a;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.categories-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0.75rem;
+}
+
+.category-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 0.25rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 0.9375rem;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.category-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.category-btn.active {
+  background: #c41e3a;
+  color: white;
+}
+
+.category-btn span:first-child {
+  font-size: 1.25rem;
+  width: 24px;
+  text-align: center;
+}
+
+.product-count {
+  margin-left: auto;
+  background: #e0e0e0;
+  color: #666;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.category-btn.active .product-count {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+/* Main Content */
+.menu-main {
+  flex: 1;
+  margin-left: 280px;
+  padding: 2rem;
+  min-height: calc(100vh - 80px);
+}
+
+.menu-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+/* Category Section */
+.category-section {
+  margin-bottom: 3rem;
+  scroll-margin-top: 100px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #c41e3a;
+}
+
+.category-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+}
+
+.category-badge {
+  background: #c41e3a;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Grid adjustments */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Menu card adjustments */
+.menu-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+/* Custom Package CTA */
+.custom-package-cta {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: white;
+  padding: 3rem;
+  border-radius: 16px;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.custom-package-cta h2 {
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.custom-package-cta p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 968px) {
+  .menu-page {
+    flex-direction: column;
+  }
+
+  .categories-sidebar {
+    width: 100%;
+    position: relative;
+    top: 0;
+    height: auto;
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem 0;
+  }
+
+  .categories-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-btn {
+    white-space: nowrap;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .menu-main {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .categories-header {
+    padding: 0 1rem 0.75rem;
+  }
+
+  .menu-main {
+    padding: 0.75rem;
+  }
+
+  .menu-header {
+    padding: 1rem 0;
+  }
+
+  .category-section {
+    margin-bottom: 2rem;
+  }
+
+  .custom-package-cta {
+    padding: 2rem 1rem;
+  }
+}

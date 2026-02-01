@@ -52,6 +52,22 @@ export async function fetchAddOns() {
   }));
 }
 
+// Fetch all products from Supabase
+export async function fetchProducts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('price', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 // Fetch testimonials from Supabase
 export async function fetchTestimonials() {
   const { data, error } = await supabase
@@ -65,6 +81,22 @@ export async function fetchTestimonials() {
   }
 
   return data;
+}
+
+// Fetch categories from Supabase
+export async function fetchCategories() {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  return data || [];
 }
 
 // Fallback static data (used if database is empty or error)
