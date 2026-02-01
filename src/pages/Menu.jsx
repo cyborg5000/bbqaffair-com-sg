@@ -1,9 +1,19 @@
-import MenuSection from '../components/MenuSection';
-import AddOns from '../components/AddOns';
+import { useCart } from '../context/CartContext';
 import { staticMenuPackages as menuPackages, staticAddOns as addOns } from '../data/menu';
-import { Star, Check } from 'lucide-react';
+import { Star, Check, ShoppingCart } from 'lucide-react';
 
 function Menu() {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (item) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      description: item.description
+    });
+  };
+
   return (
     <div style={{ paddingTop: '80px' }}>
       <section className="menu-section" style={{ paddingTop: '3rem' }}>
@@ -38,9 +48,20 @@ function Menu() {
                 ))}
               </ul>
               
-              <a href="/contact" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
-                Book Now
-              </a>
+              <button 
+                onClick={() => handleAddToCart(pkg)}
+                className="btn btn-primary" 
+                style={{ 
+                  width: '100%', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <ShoppingCart size={20} />
+                Add to Cart
+              </button>
             </div>
           ))}
         </div>
@@ -58,6 +79,21 @@ function Menu() {
               <h4>{addon.name}</h4>
               <div className="addon-price">{addon.price}</div>
               <p>{addon.description}</p>
+              <button 
+                onClick={() => handleAddToCart(addon)}
+                className="btn btn-primary"
+                style={{ 
+                  width: '100%', 
+                  marginTop: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <ShoppingCart size={18} />
+                Add to Cart
+              </button>
             </div>
           ))}
         </div>
