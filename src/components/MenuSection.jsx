@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { fetchMenuPackages, fetchAddOns, staticMenuPackages, staticAddOns } from '../data/menu';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Eye } from 'lucide-react';
 
 function MenuSection() {
   const { addToCart } = useCart();
@@ -108,20 +109,37 @@ function MenuSection() {
               </ul>
             )}
             
-            <button 
-              onClick={() => handleAddToCart(pkg)}
-              className="btn btn-primary" 
-              style={{ 
-                width: '100%', 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <ShoppingCart size={20} />
-              Add to Cart
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <Link 
+                to={`/product/${pkg.id}`}
+                className="btn btn-secondary"
+                style={{ 
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  textDecoration: 'none'
+                }}
+              >
+                <Eye size={18} />
+                Details
+              </Link>
+              <button 
+                onClick={() => handleAddToCart(pkg)}
+                className="btn btn-primary" 
+                style={{ 
+                  flex: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <ShoppingCart size={20} />
+                Add to Cart
+              </button>
+            </div>
           </div>
         ))}
       </div>
