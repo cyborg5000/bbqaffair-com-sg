@@ -1,9 +1,38 @@
+import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { menuPackages, addOns } from '../data/menu';
+import { fetchMenuPackages, fetchAddOns, staticMenuPackages, staticAddOns } from '../data/menu';
 import { Star, ShoppingCart } from 'lucide-react';
 
 function MenuSection() {
   const { addToCart } = useCart();
+  const [packages, setPackages] = useState([]);
+  const [addOns, setAddOns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Try to fetch from Supabase
+        const [pkgs, addons] = await Promise.all([
+          fetchMenuPackages(),
+          fetchAddOns()
+        ]);
+
+        // If data exists, use it; otherwise fallback to static
+        setPackages(pkgs.length > 0 ? pkgs : staticMenuPackages);
+        setAddOns(addons.length > 0 ? addons : staticAddOns);
+      } catch (error) {
+        console.error('Error loading menu data:', error);
+        // Fallback to static data
+        setPackages(staticMenuPackages);
+        setAddOns(staticAddOns);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   const handleAddToCart = (pkg) => {
     addToCart({
@@ -16,12 +45,22 @@ function MenuSection() {
 
   const handleAddAddon = (addon) => {
     addToCart({
-      id: `addon-${addon.name}`,
+      id: addon.id || `addon-${addon.name}`,
       name: addon.name,
       price: addon.price,
       description: addon.description
     });
   };
+
+  if (loading) {
+    return (
+      <section className="menu-section" id="menu">
+        <div style={{ textAlign: 'center', padding: '4rem' }}>
+          <p>Loading menu...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="menu-section" id="menu">
@@ -31,7 +70,7 @@ function MenuSection() {
       </p>
       
       <div className="menu-grid">
-        {menuPackages.map((pkg) => (
+        {packages.map((pkg) => (
           <div key={pkg.id} className={`menu-card ${pkg.popular ? 'popular' : ''}`}>
             {pkg.popular && (
               <div className="popular-badge">
@@ -40,18 +79,34 @@ function MenuSection() {
               </div>
             )}
             
+            {pkg.image && (
+              <img 
+                src={pkg.image} 
+                alt={pkg.name}
+                style={{
+                  width: '100%',
+                  height: '200px',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  marginBottom: '1rem'
+                }}
+              />
+            )}
+            
             <h3>{pkg.name}</h3>
             <div className="menu-price">
-              {pkg.price}<span>{pkg.perPerson}</span>
+              {pkg.price}<span>{pkg.perPerson || '/person'}</span>
             </div>
-            <p className="min-pax">Minimum {pkg.minPax} pax</p>
+            {pkg.minPax && <p className="min-pax">Minimum {pkg.minPax} pax</p>}
             <p>{pkg.description}</p>
             
-            <ul className="menu-items">
-              {pkg.items.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            {pkg.items && pkg.items.length > 0 && (
+              <ul className="menu-items">
+                {pkg.items.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            )}
             
             <button 
               onClick={() => handleAddToCart(pkg)}
@@ -72,37 +127,39 @@ function MenuSection() {
       </div>
 
       {/* Add-ons Section */}
-      <div style={{ marginTop: '4rem' }}>
-        <h2 className="section-title">Optional Add-Ons</h2>
-        <p className="section-subtitle">
-          Enhance your BBQ experience with these additional services
-        </p>
-        
-        <div className="addons-grid">
-          {addOns.map((addon, index) => (
-            <div key={index} className="addon-card">
-              <h4>{addon.name}</h4>
-              <div className="addon-price">{addon.price}</div>
-              <p>{addon.description}</p>
-              <button 
-                onClick={() => handleAddAddon(addon)}
-                className="btn btn-primary"
-                style={{ 
-                  width: '100%', 
-                  marginTop: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <ShoppingCart size={18} />
-                Add to Cart
-              </button>
-            </div>
-          ))}
+      {addOns.length > 0 && (
+        <div style={{ marginTop: '4rem' }}>
+          <h2 className="section-title">Optional Add-Ons</h2>
+          <p className="section-subtitle">
+            Enhance your BBQ experience with these additional services
+          </p>
+          
+          <div className="addons-grid">
+            {addOns.map((addon) => (
+              <div key={addon.id || addon.name} className="addon-card">
+                <h4>{addon.name}</h4>
+                <div className="addon-price">{addon.price}</div>
+                <p>{addon.description}</p>
+                <button 
+                  onClick={() => handleAddAddon(addon)}
+                  className="btn btn-primary"
+                  style={{ 
+                    width: '100%', 
+                    marginTop: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <ShoppingCart size={18} />
+                  Add to Cart
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
