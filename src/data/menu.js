@@ -1,5 +1,77 @@
-// BBQ Menu Data
-export const menuPackages = [
+import { supabase } from '../lib/supabase';
+
+// Fetch products from Supabase
+export async function fetchMenuPackages() {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_items(item_name)
+    `)
+    .eq('category', 'package')
+    .eq('active', true)
+    .order('price', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching menu packages:', error);
+    return [];
+  }
+
+  // Transform data to match component expectations
+  return data.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: `$${product.price}`,
+    perPerson: '/person',
+    minPax: product.min_pax,
+    description: product.description,
+    items: product.product_items?.map(item => item.item_name) || [],
+    popular: product.popular,
+    image: product.image_url
+  }));
+}
+
+// Fetch add-ons from Supabase
+export async function fetchAddOns() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category', 'addon')
+    .eq('active', true)
+    .order('price', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching add-ons:', error);
+    return [];
+  }
+
+  return data.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: `$${product.price}`,
+    description: product.description,
+    minPax: product.min_pax
+  }));
+}
+
+// Fetch testimonials from Supabase
+export async function fetchTestimonials() {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching testimonials:', error);
+    return [];
+  }
+
+  return data;
+}
+
+// Fallback static data (used if database is empty or error)
+export const staticMenuPackages = [
   {
     id: 1,
     name: "Classic BBQ Package",
@@ -61,16 +133,16 @@ export const menuPackages = [
   }
 ];
 
-export const addOns = [
-  { name: "Live BBQ Station Chef", price: "$150", description: "Professional chef on-site" },
-  { name: "Grill Rental", price: "$80", description: "Includes setup & cleaning" },
-  { name: "Tentage Setup", price: "$200", description: "Basic tent with tables & chairs" },
-  { name: "Additional Hour", price: "$50", description: "Extend service time" },
-  { name: "Vegetarian Package", price: "$18", description: "Per person, min 10 pax" },
-  { name: "Dessert Station", price: "$120", description: "Assorted desserts display" }
+export const staticAddOns = [
+  { id: 'a1', name: "Live BBQ Station Chef", price: "$150", description: "Professional chef on-site" },
+  { id: 'a2', name: "Grill Rental", price: "$80", description: "Includes setup & cleaning" },
+  { id: 'a3', name: "Tentage Setup", price: "$200", description: "Basic tent with tables & chairs" },
+  { id: 'a4', name: "Additional Hour", price: "$50", description: "Extend service time" },
+  { id: 'a5', name: "Vegetarian Package", price: "$18", description: "Per person, min 10 pax" },
+  { id: 'a6', name: "Dessert Station", price: "$120", description: "Assorted desserts display" }
 ];
 
-export const testimonials = [
+export const staticTestimonials = [
   {
     id: 1,
     name: "Sarah Chen",
@@ -92,13 +164,4 @@ export const testimonials = [
     quote: "Professional team, great food, hassle-free experience. Highly recommended for any event!",
     rating: 5
   }
-];
-
-export const galleryImages = [
-  { id: 1, category: "food", alt: "Grilled Lamb Chops" },
-  { id: 2, category: "food", alt: "BBQ Satay" },
-  { id: 3, category: "event", alt: "Corporate Event Setup" },
-  { id: 4, category: "food", alt: "Seafood Platter" },
-  { id: 5, category: "event", alt: "Family Gathering" },
-  { id: 6, category: "food", alt: "Premium Meat Selection" }
 ];
