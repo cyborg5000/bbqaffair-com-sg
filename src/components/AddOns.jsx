@@ -1,4 +1,4 @@
-import { addOns } from '../data/menu';
+import { staticAddOns as addOns } from '../data/menu';
 
 function AddOns() {
   return (

@@ -1,6 +1,6 @@
 import MenuSection from '../components/MenuSection';
 import AddOns from '../components/AddOns';
-import { menuPackages, addOns } from '../data/menu';
+import { staticMenuPackages as menuPackages, staticAddOns as addOns } from '../data/menu';
 import { Star, Check } from 'lucide-react';
 
 function Menu() {

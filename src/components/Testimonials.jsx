@@ -1,4 +1,4 @@
-import { testimonials } from '../data/menu';
+import { staticTestimonials as testimonials } from '../data/menu';
 import { Star } from 'lucide-react';
 
 function Testimonials() {
