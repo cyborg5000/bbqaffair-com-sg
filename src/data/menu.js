@@ -52,11 +52,22 @@ export async function fetchAddOns() {
   }));
 }
 
-// Fetch all products from Supabase
+// Fetch all products from Supabase (with options)
 export async function fetchProducts() {
   const { data, error } = await supabase
     .from('products')
-    .select('*')
+    .select(`
+      *,
+      product_options(
+        id,
+        name,
+        current_price,
+        original_price,
+        display_order,
+        is_default,
+        is_active
+      )
+    `)
     .order('category', { ascending: true })
     .order('price', { ascending: true });
 
@@ -65,7 +76,45 @@ export async function fetchProducts() {
     return [];
   }
 
-  return data || [];
+  // Filter and sort options for each product
+  return (data || []).map(product => ({
+    ...product,
+    product_options: (product.product_options || [])
+      .filter(opt => opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+  }));
+}
+
+// Fetch single product with options (for ProductDetail page)
+export async function fetchProductById(id) {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_options(
+        id,
+        name,
+        current_price,
+        original_price,
+        display_order,
+        is_default,
+        is_active
+      )
+    `)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching product:', error);
+    return null;
+  }
+
+  return {
+    ...data,
+    product_options: (data.product_options || [])
+      .filter(opt => opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order)
+  };
 }
 
 // Fetch testimonials from Supabase

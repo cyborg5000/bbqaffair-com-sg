@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { fetchProductById } from '../data/menu';
 import { useCart } from '../context/CartContext';
 import '../styles/product.css';
 
@@ -8,44 +8,53 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
 
   useEffect(() => {
-    fetchProduct();
-  }, [id]);
-
-  async function fetchProduct() {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+    async function loadProduct() {
+      setLoading(true);
+      const data = await fetchProductById(id);
       setProduct(data);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-    } finally {
+
+      // Set default option if product has options
+      if (data?.has_options && data?.product_options?.length > 0) {
+        const defaultOpt = data.product_options.find(opt => opt.is_default)
+          || data.product_options[0];
+        setSelectedOption(defaultOpt);
+      } else {
+        setSelectedOption(null);
+      }
+
       setLoading(false);
     }
-  }
+    loadProduct();
+  }, [id]);
+
+  // Calculate current and original price based on selection
+  const currentPrice = selectedOption?.current_price ?? product?.price ?? 0;
+  const originalPrice = selectedOption?.original_price ?? null;
+  const hasDiscount = originalPrice && originalPrice > currentPrice;
 
   function handleAddToCart() {
     if (!product) return;
-    
+
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: currentPrice,
       image: product.image_url,
       quantity: quantity,
+      optionId: selectedOption?.id || null,
+      optionName: selectedOption?.name || null,
+      unitLabel: product.unit_label || null,
+      originalPrice: originalPrice,
     });
-    
+
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   }
@@ -106,8 +115,43 @@ export default function ProductDetail() {
           <div className="product-info-section">
             <span className="product-category">{product.category}</span>
             <h1 className="product-name">{product.name}</h1>
-            <p className="product-price">${product.price.toFixed(2)}</p>
-            
+
+            {/* Price Display */}
+            <p className="product-price">
+              {hasDiscount && (
+                <span className="original-price">${originalPrice.toFixed(2)}</span>
+              )}
+              <span className="current-price">${currentPrice.toFixed(2)}</span>
+              {product.unit_label && (
+                <span className="unit-label"> / {product.unit_label}</span>
+              )}
+            </p>
+
+            {/* Option Selector */}
+            {product.has_options && product.product_options?.length > 0 && (
+              <div className="options-section">
+                <label>Select Option:</label>
+                <div className="options-selector">
+                  {product.product_options.map(option => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`option-btn ${selectedOption?.id === option.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedOption(option)}
+                    >
+                      <span className="option-name">{option.name}</span>
+                      <span className="option-price">
+                        {option.original_price && option.original_price > option.current_price && (
+                          <span className="option-original-price">${option.original_price.toFixed(2)}</span>
+                        )}
+                        <span className="option-current-price">${option.current_price.toFixed(2)}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="product-description">
               <h3>Description</h3>
               <p>{product.description}</p>
@@ -115,7 +159,7 @@ export default function ProductDetail() {
 
             {/* Quantity Selector */}
             <div className="quantity-section">
-              <label>Quantity:</label>
+              <label>Quantity{product.unit_label ? ` (${product.unit_label})` : ''}:</label>
               <div className="quantity-selector">
                 <button 
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -137,7 +181,7 @@ export default function ProductDetail() {
                 className={`btn-add-cart ${addedToCart ? 'added' : ''}`}
                 disabled={!product.is_active}
               >
-                {addedToCart ? '✓ Added to Cart!' : `Add to Cart - $${(product.price * quantity).toFixed(2)}`}
+                {addedToCart ? '✓ Added to Cart!' : `Add to Cart - $${(currentPrice * quantity).toFixed(2)}`}
               </button>
               
               {!product.is_active && (

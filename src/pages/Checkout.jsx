@@ -136,29 +136,46 @@ function Checkout() {
                 Order Summary ({cartItems.length} items)
               </h3>
               
-              {cartItems.map(item => (
-                <div 
-                  key={item.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '1rem 0',
-                    borderBottom: '1px solid #ddd'
-                  }}
-                >
-                  <div>
-                    <p style={{ fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>
-                      {item.name}
-                    </p>
-                    <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
-                      Qty: {item.quantity}
+              {cartItems.map(item => {
+                const itemKey = item.optionId ? `${item.id}-${item.optionId}` : item.id;
+                const displayPrice = typeof item.price === 'number'
+                  ? `$${item.price.toFixed(2)}`
+                  : item.price;
+                const lineTotal = typeof item.price === 'number'
+                  ? `$${(item.price * item.quantity).toFixed(2)}`
+                  : displayPrice;
+
+                return (
+                  <div
+                    key={itemKey}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '1rem 0',
+                      borderBottom: '1px solid #ddd'
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>
+                        {item.name}
+                        {item.optionName && (
+                          <span style={{ fontWeight: 'normal', color: 'var(--primary-color)' }}>
+                            {' '}- {item.optionName}
+                          </span>
+                        )}
+                      </p>
+                      <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
+                        {displayPrice}
+                        {item.unitLabel && ` / ${item.unitLabel}`}
+                        {' '} × {item.quantity}
+                      </p>
+                    </div>
+                    <p style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                      {lineTotal}
                     </p>
                   </div>
-                  <p style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                    {item.price}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
               
               <div style={{
                 display: 'flex',

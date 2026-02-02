@@ -21,32 +21,43 @@ export function CartProvider({ children }) {
 
   const addToCart = useCallback((item) => {
     setCartItems(prev => {
-      const existing = prev.find(i => i.id === item.id);
+      // Create unique key: product_id + option_id (for products with options)
+      const getItemKey = (i) => i.optionId ? `${i.id}-${i.optionId}` : String(i.id);
+      const itemKey = getItemKey(item);
+
+      const existing = prev.find(i => getItemKey(i) === itemKey);
       if (existing) {
-        return prev.map(i => 
-          i.id === item.id 
-            ? { ...i, quantity: i.quantity + 1 }
+        return prev.map(i =>
+          getItemKey(i) === itemKey
+            ? { ...i, quantity: i.quantity + (item.quantity || 1) }
             : i
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
     setIsCartOpen(true);
   }, []);
 
-  const removeFromCart = useCallback((itemId) => {
-    setCartItems(prev => prev.filter(i => i.id !== itemId));
+  // Helper to get unique cart item key
+  const getItemKey = useCallback((item) => {
+    return item.optionId ? `${item.id}-${item.optionId}` : String(item.id);
   }, []);
 
-  const updateQuantity = useCallback((itemId, quantity) => {
+  const removeFromCart = useCallback((itemId, optionId = null) => {
+    const keyToRemove = optionId ? `${itemId}-${optionId}` : String(itemId);
+    setCartItems(prev => prev.filter(i => getItemKey(i) !== keyToRemove));
+  }, [getItemKey]);
+
+  const updateQuantity = useCallback((itemId, quantity, optionId = null) => {
     if (quantity <= 0) {
-      removeFromCart(itemId);
+      removeFromCart(itemId, optionId);
       return;
     }
-    setCartItems(prev => 
-      prev.map(i => i.id === itemId ? { ...i, quantity } : i)
+    const keyToUpdate = optionId ? `${itemId}-${optionId}` : String(itemId);
+    setCartItems(prev =>
+      prev.map(i => getItemKey(i) === keyToUpdate ? { ...i, quantity } : i)
     );
-  }, [removeFromCart]);
+  }, [removeFromCart, getItemKey]);
 
   const clearCart = useCallback(() => {
     setCartItems([]);
@@ -56,7 +67,10 @@ export function CartProvider({ children }) {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   
   const totalPrice = cartItems.reduce((sum, item) => {
-    const price = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+    // Handle both number and string prices (e.g., "$25.00" or 25)
+    const price = typeof item.price === 'number'
+      ? item.price
+      : parseFloat(String(item.price).replace(/[^0-9.]/g, ''));
     return sum + (price * item.quantity);
   }, 0);
 

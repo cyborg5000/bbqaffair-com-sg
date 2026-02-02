@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { fetchProducts, fetchCategories } from '../data/menu';
-import { Star, Check, ShoppingCart, Eye } from 'lucide-react';
+import { Star, Check, ShoppingCart, Eye, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import '../styles/menu-categories.css';
 
@@ -12,6 +12,7 @@ function Menu() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -31,6 +32,34 @@ function Menu() {
     loadData();
   }, []);
 
+  // Auto-detect active category on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (categories.length === 0) return;
+      
+      const scrollPosition = window.scrollY + 160; // Offset for headers
+      
+      for (const category of categories) {
+        const element = document.getElementById(`category-${category.name.replace(/\s+/g, '-')}`);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setSelectedCategory(category.name);
+            return;
+          }
+        }
+      }
+      
+      // If scrolled to top, clear selection
+      if (window.scrollY < 100) {
+        setSelectedCategory(null);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [categories]);
+
   // Group products by category
   const productsByCategory = products.reduce((acc, product) => {
     const cat = product.category || 'Uncategorized';
@@ -39,10 +68,8 @@ function Menu() {
     return acc;
   }, {});
 
-  // Filter products if category selected
-  const displayCategories = selectedCategory 
-    ? categories.filter(c => c.name === selectedCategory)
-    : categories;
+  // Always show all categories - selectedCategory is only for UI highlighting
+  const displayCategories = categories;
 
   const handleAddToCart = (item) => {
     addToCart({
@@ -56,9 +83,21 @@ function Menu() {
   const scrollToCategory = (categoryName) => {
     const element = document.getElementById(`category-${categoryName.replace(/\s+/g, '-')}`);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const offset = 140; // Account for sticky header + category nav
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({
+        top: elementPosition - offset,
+        behavior: 'smooth'
+      });
     }
     setSelectedCategory(categoryName);
+    setIsMobileMenuOpen(false);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSelectedCategory(null);
+    setIsMobileMenuOpen(false);
   };
 
   if (loading) {
@@ -70,8 +109,8 @@ function Menu() {
   }
 
   return (
-    <div className="menu-page" style={{ paddingTop: '80px' }}>
-      {/* Categories Sidebar */}
+    <div className="menu-page">
+      {/* Categories Sidebar - Desktop */}
       <aside className="categories-sidebar">
         <div className="categories-header">
           <h3>Categories</h3>
@@ -80,7 +119,7 @@ function Menu() {
         <nav className="categories-nav">
           <button 
             className={`category-btn ${!selectedCategory ? 'active' : ''}`}
-            onClick={() => setSelectedCategory(null)}
+            onClick={scrollToTop}
           >
             <span>🍖</span>
             All Products
@@ -101,6 +140,44 @@ function Menu() {
           ))}
         </nav>
       </aside>
+
+      {/* Mobile Category Navigation */}
+      <div className="mobile-category-nav">
+        <button 
+          className="mobile-category-toggle"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          <span className="mobile-category-icon">{selectedCategory ? getCategoryIcon(selectedCategory) : '🍖'}</span>
+          <span className="mobile-category-label">{selectedCategory || 'All Categories'}</span>
+          <ChevronDown size={20} className={`mobile-category-chevron ${isMobileMenuOpen ? 'open' : ''}`} />
+        </button>
+        
+        {isMobileMenuOpen && (
+          <div className="mobile-category-dropdown">
+            <button 
+              className={`mobile-category-item ${!selectedCategory ? 'active' : ''}`}
+              onClick={scrollToTop}
+            >
+              <span>🍖</span>
+              All Products
+              <span className="product-count">{products.length}</span>
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                className={`mobile-category-item ${selectedCategory === category.name ? 'active' : ''}`}
+                onClick={() => scrollToCategory(category.name)}
+              >
+                <span>{getCategoryIcon(category.name)}</span>
+                {category.name}
+                <span className="product-count">
+                  {productsByCategory[category.name]?.length || 0}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Main Content */}
       <main className="menu-main">
