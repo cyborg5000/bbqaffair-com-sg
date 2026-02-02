@@ -165,8 +165,8 @@ function Checkout() {
                   src="/images/QRCode.jpeg"
                   alt="PayNow QR Code"
                   style={{
-                    width: '200px',
-                    height: '200px',
+                    width: '420px',
+                    height: '420px',
                     objectFit: 'contain',
                     margin: '0 auto',
                     display: 'block',
