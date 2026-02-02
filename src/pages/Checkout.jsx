@@ -12,6 +12,7 @@ function Checkout() {
     email: '',
     phone: '',
     eventDate: '',
+    eventTime: '',
     eventAddress: '',
     notes: ''
   });
@@ -45,6 +46,7 @@ function Checkout() {
         customer_email: formData.email,
         customer_phone: formData.phone,
         event_date: formData.eventDate,
+        event_time: formData.eventTime,
         event_address: formData.eventAddress,
         notes: formData.notes,
         total_amount: totalPrice,
@@ -522,6 +524,17 @@ function Checkout() {
                     type="date"
                     name="eventDate"
                     value={formData.eventDate}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Event Time (SGT) *</label>
+                  <input
+                    type="time"
+                    name="eventTime"
+                    value={formData.eventTime}
                     onChange={handleInputChange}
                     required
                   />

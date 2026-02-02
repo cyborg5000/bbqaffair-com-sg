@@ -256,7 +256,8 @@ export default function AdminOrders() {
                   <p><strong>Phone:</strong> {selectedOrder.customer_phone}</p>
                   <p><strong>Email:</strong> {selectedOrder.customer_email}</p>
                   <p><strong>Event Date:</strong> {selectedOrder.event_date}</p>
-                  <p><strong>Address:</strong> {selectedOrder.delivery_address}</p>
+                  <p><strong>Event Time:</strong> {selectedOrder.event_time || 'Not specified'}</p>
+                  <p><strong>Address:</strong> {selectedOrder.event_address}</p>
                 </div>
 
                 <div className="detail-section">
