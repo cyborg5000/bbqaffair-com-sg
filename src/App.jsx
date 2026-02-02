@@ -11,6 +11,7 @@ import Menu from './pages/Menu';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Checkout from './pages/Checkout';
+import CheckoutSuccess from './pages/CheckoutSuccess';
 import FAQ from './pages/FAQ';
 import ProductDetail from './pages/ProductDetail';
 import AdminLogin from './pages/admin/AdminLogin';
@@ -38,6 +39,7 @@ function AppContent() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
           <Route path="/faq" element={<FAQ />} />
 
           {/* Admin Routes */}

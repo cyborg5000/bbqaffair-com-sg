@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { createOrder, createOrderItems, createOrderItemAddons } from '../lib/supabase';
+import { createOrder, createOrderItems, createOrderItemAddons, supabase } from '../lib/supabase';
 import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart, Loader } from 'lucide-react';
+
+// Supabase Edge Function URL for Stripe checkout
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
 
 function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
@@ -96,7 +99,71 @@ function Checkout() {
         }
       }
 
-      // Store created order and show confirmation
+      // Handle Stripe payment - redirect to Stripe Checkout
+      if (paymentMethod === 'stripe') {
+        // Prepare line items for Stripe
+        const lineItems = cartItems.map(item => {
+          let itemName = item.optionName ? `${item.name} - ${item.optionName}` : item.name;
+          const itemPrice = typeof item.price === 'number' ? item.price : parseFloat(item.price.replace(/[^0-9.]/g, ''));
+
+          // Include addons in description
+          let description = '';
+          if (item.addons && item.addons.length > 0) {
+            description = 'Add-ons: ' + item.addons.map(a => a.name).join(', ');
+          }
+
+          return {
+            name: itemName,
+            description: description || undefined,
+            price: itemPrice,
+            quantity: item.quantity
+          };
+        });
+
+        // Add addon prices as separate line items
+        cartItems.forEach(item => {
+          if (item.addons && item.addons.length > 0) {
+            item.addons.forEach(addon => {
+              lineItems.push({
+                name: `Add-on: ${addon.name}`,
+                price: parseFloat(addon.price),
+                quantity: item.quantity
+              });
+            });
+          }
+        });
+
+        // Call Supabase Edge Function to create Stripe Checkout Session
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            line_items: lineItems,
+            customer_email: formData.email,
+            success_url: `${window.location.origin}/checkout/success`,
+            cancel_url: `${window.location.origin}/checkout?cancelled=true`
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Clear cart before redirect (order is created, payment pending)
+        clearCart();
+
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+        return;
+      }
+
+      // For PayNow - show confirmation page
       setCreatedOrder(order);
       setOrderCreated(true);
       clearCart();
