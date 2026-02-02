@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import TiptapEditor from '../../components/TiptapEditor';
+import ImageUpload from '../../components/admin/ImageUpload';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -379,15 +380,11 @@ export default function AdminProducts() {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Image URL</label>
-                  <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                    placeholder="https://..."
-                  />
-                </div>
+                <ImageUpload
+                  value={formData.image_url}
+                  onChange={(url) => setFormData({...formData, image_url: url})}
+                  label="Product Image"
+                />
 
                 <div className="form-group">
                   <label>Unit Label (optional)</label>

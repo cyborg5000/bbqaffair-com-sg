@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { fetchProducts, fetchCategories } from '../data/menu';
-import { Star, Check, ShoppingCart, Eye, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Star, ShoppingCart, Eye, ChevronDown } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import '../styles/menu-categories.css';
 
 
 function Menu() {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -206,17 +208,22 @@ function Menu() {
               
               <div className="menu-grid">
                 {categoryProducts.map((product) => (
-                  <div key={product.id} className={`menu-card ${product.popular ? 'popular' : ''}`}>
+                  <div
+                    key={product.id}
+                    className={`menu-card ${product.popular ? 'popular' : ''}`}
+                    onClick={() => navigate(`/product/${product.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {product.popular && (
                       <div className="popular-badge">
                         <Star size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
                         Most Popular
                       </div>
                     )}
-                    
+
                     {product.image_url && (
-                      <img 
-                        src={product.image_url} 
+                      <img
+                        src={product.image_url}
                         alt={product.name}
                         style={{
                           width: '100%',
@@ -227,15 +234,25 @@ function Menu() {
                         }}
                       />
                     )}
-                    
+
                     <h3>{product.name}</h3>
                     <div className="menu-price">
                       ${product.price.toFixed(2)}
                       {product.min_pax && <span className="min-pax"> (min {product.min_pax} pax)</span>}
                     </div>
-                    <p>{product.description}</p>
-                    
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    {product.description && (
+                      <div
+                        className="menu-description"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(product.description)
+                        }}
+                      />
+                    )}
+
+                    <div
+                      style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '1rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Link
                         to={`/product/${product.id}`}
                         className="btn btn-secondary"
@@ -253,10 +270,10 @@ function Menu() {
                         <Eye size={18} />
                         Details
                       </Link>
-                      <button 
+                      <button
                         onClick={() => handleAddToCart(product)}
-                        className="btn btn-primary" 
-                        style={{ 
+                        className="btn btn-primary"
+                        style={{
                           flex: 2,
                           display: 'flex',
                           alignItems: 'center',
