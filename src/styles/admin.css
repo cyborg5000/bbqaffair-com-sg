@@ -813,3 +813,116 @@
     font-size: 0.875rem;
   }
 }
+
+/* Tiptap Editor Styles */
+.tiptap-editor {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.tiptap-editor:focus-within {
+  border-color: var(--ember-orange);
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #f8f8f8;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tiptap-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.tiptap-toolbar button:hover:not(:disabled) {
+  background: #e8e8e8;
+  border-color: #ccc;
+}
+
+.tiptap-toolbar button.is-active {
+  background: var(--ember-orange);
+  color: white;
+  border-color: var(--ember-orange);
+}
+
+.tiptap-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 28px;
+  background: #e0e0e0;
+  margin: 4px 6px;
+  align-self: center;
+}
+
+.tiptap-content {
+  padding: 1rem;
+  min-height: 150px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: white;
+}
+
+.tiptap-content .ProseMirror {
+  outline: none;
+  min-height: 120px;
+}
+
+.tiptap-content .ProseMirror p {
+  margin: 0 0 0.75rem 0;
+}
+
+.tiptap-content .ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1rem 0 0.75rem;
+  color: #333;
+}
+
+.tiptap-content .ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+  color: #333;
+}
+
+.tiptap-content .ProseMirror ul,
+.tiptap-content .ProseMirror ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.tiptap-content .ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+.tiptap-content .ProseMirror a {
+  color: var(--ember-orange);
+  text-decoration: underline;
+}
+
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: 'Enter product description...';
+  color: #aaa;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

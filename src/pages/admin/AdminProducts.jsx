@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
+import TiptapEditor from '../../components/TiptapEditor';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -349,10 +350,9 @@ export default function AdminProducts() {
 
                 <div className="form-group">
                   <label>Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows="3"
+                  <TiptapEditor
+                    content={formData.description}
+                    onUpdate={(html) => setFormData({...formData, description: html})}
                   />
                 </div>
 

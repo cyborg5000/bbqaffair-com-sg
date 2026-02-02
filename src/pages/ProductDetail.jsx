@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchProductById } from '../data/menu';
 import { useCart } from '../context/CartContext';
+import DOMPurify from 'dompurify';
 import '../styles/product.css';
 
 export default function ProductDetail() {
@@ -154,7 +155,16 @@ export default function ProductDetail() {
 
             <div className="product-description">
               <h3>Description</h3>
-              <p>{product.description}</p>
+              {product.description ? (
+                <div
+                  className="rich-text-content"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(product.description)
+                  }}
+                />
+              ) : (
+                <p>No description available.</p>
+              )}
             </div>
 
             {/* Quantity Selector */}

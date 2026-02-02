@@ -236,16 +236,18 @@ function Menu() {
                     <p>{product.description}</p>
                     
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                      <Link 
+                      <Link
                         to={`/product/${product.id}`}
                         className="btn btn-secondary"
-                        style={{ 
+                        style={{
                           flex: 1,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '0.5rem',
-                          textDecoration: 'none'
+                          textDecoration: 'none',
+                          color: 'var(--secondary-color)',
+                          border: '2px solid var(--secondary-color)'
                         }}
                       >
                         <Eye size={18} />
