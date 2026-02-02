@@ -4,7 +4,8 @@
 .product-detail-page {
   min-height: 100vh;
   background: var(--cream-white);
-  padding: 2rem 0;
+  padding-top: 100px;
+  padding-bottom: 2rem;
 }
 
 .product-detail-container {

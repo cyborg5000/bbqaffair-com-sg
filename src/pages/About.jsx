@@ -4,15 +4,17 @@ function About() {
   return (
     <div style={{ paddingTop: '80px' }}>
       {/* Hero Section */}
-      <section 
+      <section
         style={{
-          background: 'linear-gradient(rgba(44, 24, 16, 0.85), rgba(44, 24, 16, 0.85))',
+          background: 'linear-gradient(rgba(44, 24, 16, 0.85), rgba(44, 24, 16, 0.85)), url("/images/about-hero.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           color: 'white',
           padding: '6rem 2rem',
           textAlign: 'center'
         }}
       >
-        <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>About BBQAffair</h1>
+        <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: 'white' }}>About BBQAffair</h1>
         <p style={{ fontSize: '1.3rem', maxWidth: '700px', margin: '0 auto' }}>
           Bringing people together through the love of authentic Singapore BBQ
         </p>

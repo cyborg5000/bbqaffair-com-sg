@@ -3,6 +3,23 @@ import ContactForm from '../components/ContactForm';
 function Contact() {
   return (
     <div style={{ paddingTop: '80px' }}>
+      {/* Hero Section */}
+      <section
+        style={{
+          background: 'linear-gradient(rgba(44, 24, 16, 0.85), rgba(44, 24, 16, 0.85)), url("/images/contact-team.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          color: 'white',
+          padding: '4rem 2rem',
+          textAlign: 'center'
+        }}
+      >
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Contact Us</h1>
+        <p style={{ fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>
+          Let's bring the sizzle to your next event
+        </p>
+      </section>
+
       <ContactForm />
       
       {/* Map Section */}

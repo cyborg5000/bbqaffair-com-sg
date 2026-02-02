@@ -15,16 +15,21 @@ function AboutSection() {
           <h2 className="section-title">Why Choose BBQAffair?</h2>
         </div>
 
-        <div className="about-text">
-          <p>
-            With years of experience in Singapore's catering scene, we've perfected
-            the art of BBQ. Our commitment to quality ingredients, authentic flavors,
-            and exceptional service has made us the preferred choice for hundreds of events.
-          </p>
-          <p>
-            From marinated meats grilled to perfection to our signature sauces,
-            every dish is crafted with passion and delivered with professionalism.
-          </p>
+        <div className="about-main">
+          <div className="about-image">
+            <img src="/images/about-cooking.jpg" alt="BBQ cooking" />
+          </div>
+          <div className="about-text">
+            <p>
+              With years of experience in Singapore's catering scene, we've perfected
+              the art of BBQ. Our commitment to quality ingredients, authentic flavors,
+              and exceptional service has made us the preferred choice for hundreds of events.
+            </p>
+            <p>
+              From marinated meats grilled to perfection to our signature sauces,
+              every dish is crafted with passion and delivered with professionalism.
+            </p>
+          </div>
         </div>
 
         <div className="features-grid">

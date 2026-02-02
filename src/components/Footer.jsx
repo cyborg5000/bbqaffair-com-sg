@@ -1,11 +1,33 @@
+import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, MapPin, Phone, Mail } from 'lucide-react';
 
 function Footer() {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.playbackRate = 0.6;
+  }, []);
+
   return (
     <footer className="footer">
-      {/* Top Ember Gradient Bar */}
-      <div className="footer-ember-bar"></div>
+      {/* Video Background */}
+      <div className="footer-background">
+        <video
+          ref={videoRef}
+          className="footer-video-layer"
+          autoPlay
+          loop
+          muted
+          playsInline
+        >
+          <source src="/video/fire-background.mp4" type="video/mp4" />
+        </video>
+        <div className="footer-gradient-layer"></div>
+      </div>
 
       <div className="footer-content">
         <div className="footer-section footer-brand">
