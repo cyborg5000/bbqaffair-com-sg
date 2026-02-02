@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
+import { createOrder, createOrderItems } from '../lib/supabase';
+import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart, Loader } from 'lucide-react';
 
 function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('paynow');
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
@@ -14,7 +15,10 @@ function Checkout() {
     eventAddress: '',
     notes: ''
   });
-  const [orderComplete, setOrderComplete] = useState(false);
+  const [orderCreated, setOrderCreated] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   // Wait for cart to load from localStorage
   useEffect(() => {
@@ -29,38 +33,197 @@ function Checkout() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Process payment logic here
-    setOrderComplete(true);
-    clearCart();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Create order in database
+      const orderData = {
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        event_date: formData.eventDate,
+        event_address: formData.eventAddress,
+        notes: formData.notes,
+        total_amount: totalPrice,
+        payment_method: paymentMethod,
+        status: 'pending',
+        payment_status: 'pending'
+      };
+
+      const order = await createOrder(orderData);
+
+      if (!order) {
+        throw new Error('Failed to create order');
+      }
+
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        order_id: order.id,
+        product_id: item.id,
+        product_name: item.optionName ? `${item.name} - ${item.optionName}` : item.name,
+        price: typeof item.price === 'number' ? item.price : parseFloat(item.price.replace(/[^0-9.]/g, '')),
+        quantity: item.quantity
+      }));
+
+      await createOrderItems(orderItems);
+
+      // Store created order and show confirmation
+      setCreatedOrder(order);
+      setOrderCreated(true);
+      clearCart();
+    } catch (err) {
+      console.error('Order creation failed:', err);
+      setError('Failed to create order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (orderComplete) {
+  // Show order confirmation with payment instructions
+  if (orderCreated && createdOrder) {
     return (
-      <div style={{ paddingTop: '100px', minHeight: '60vh', textAlign: 'center' }}>
-        <div style={{ maxWidth: '500px', margin: '0 auto', padding: '2rem' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: '#4CAF50',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 2rem'
-          }}>
-            <Check size={40} color="white" />
+      <div style={{ paddingTop: '100px', minHeight: '60vh' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              background: paymentMethod === 'paynow' ? 'var(--primary-color)' : '#4CAF50',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem'
+            }}>
+              {paymentMethod === 'paynow' ? (
+                <QrCode size={40} color="white" />
+              ) : (
+                <Check size={40} color="white" />
+              )}
+            </div>
+            <h1 style={{ color: 'var(--secondary-color)', marginBottom: '0.5rem' }}>
+              Order Placed Successfully!
+            </h1>
+            <p style={{ color: '#666', fontSize: '0.9rem' }}>
+              Order ID: <strong>{createdOrder.id.slice(0, 8).toUpperCase()}</strong>
+            </p>
           </div>
-          <h1 style={{ color: 'var(--secondary-color)', marginBottom: '1rem' }}>
-            Order Received!
-          </h1>
-          <p style={{ color: '#666', marginBottom: '2rem' }}>
-            Thank you for your order. We will contact you within 24 hours to confirm your booking.
-          </p>
-          <a href="/" className="btn btn-primary">
-            Return to Home
-          </a>
+
+          {/* PayNow Payment Instructions */}
+          {paymentMethod === 'paynow' && (
+            <div style={{
+              background: '#f8f8f8',
+              padding: '2rem',
+              borderRadius: '12px',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: 'var(--secondary-color)', marginBottom: '1rem', textAlign: 'center' }}>
+                Complete Your Payment
+              </h3>
+              <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#666' }}>
+                Scan the QR code below with your banking app to pay
+              </p>
+
+              <div style={{
+                background: 'white',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                textAlign: 'center',
+                marginBottom: '1.5rem'
+              }}>
+                <p style={{ fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--primary-color)', marginBottom: '1rem' }}>
+                  Amount: ${createdOrder.total_amount.toFixed(2)}
+                </p>
+                <div style={{
+                  width: '200px',
+                  height: '200px',
+                  background: '#f0f0f0',
+                  margin: '0 auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  border: '2px dashed #ccc'
+                }}>
+                  <div style={{ textAlign: 'center', color: '#666' }}>
+                    <QrCode size={64} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+                    <p style={{ fontSize: '0.875rem' }}>PayNow QR Code</p>
+                  </div>
+                </div>
+                <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                  UEN: <strong>[Your UEN Number]</strong>
+                </p>
+              </div>
+
+              <div style={{
+                background: '#fff3cd',
+                border: '1px solid #ffc107',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1rem'
+              }}>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#856404' }}>
+                  <strong>Important:</strong> After making payment, your order status will be updated once we verify the payment.
+                  We will contact you within 24 hours to confirm your booking.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Stripe Payment Instructions */}
+          {paymentMethod === 'stripe' && (
+            <div style={{
+              background: '#f8f8f8',
+              padding: '2rem',
+              borderRadius: '12px',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: 'var(--secondary-color)', marginBottom: '1rem', textAlign: 'center' }}>
+                Payment Pending
+              </h3>
+              <p style={{ textAlign: 'center', color: '#666', marginBottom: '1.5rem' }}>
+                Online card payment will be available soon. For now, please contact us to complete your payment.
+              </p>
+
+              <div style={{
+                background: 'white',
+                padding: '1.5rem',
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                <p style={{ fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--primary-color)', marginBottom: '1rem' }}>
+                  Total: ${createdOrder.total_amount.toFixed(2)}
+                </p>
+                <p style={{ color: '#666', marginBottom: '0.5rem' }}>
+                  <strong>WhatsApp:</strong> +65 XXXX XXXX
+                </p>
+                <p style={{ color: '#666' }}>
+                  <strong>Email:</strong> info@bbqaffair.com.sg
+                </p>
+              </div>
+
+              <div style={{
+                background: '#d4edda',
+                border: '1px solid #28a745',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginTop: '1rem'
+              }}>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#155724' }}>
+                  Your order has been received. We will contact you within 24 hours to arrange payment and confirm your booking.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center' }}>
+            <a href="/" className="btn btn-primary">
+              Return to Home
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -257,40 +420,6 @@ function Checkout() {
                 </label>
               </div>
 
-              {/* PayNow QR Display */}
-              {paymentMethod === 'paynow' && (
-                <div style={{
-                  marginTop: '1.5rem',
-                  padding: '1.5rem',
-                  background: 'white',
-                  borderRadius: '8px',
-                  textAlign: 'center'
-                }}>
-                  <p style={{ marginBottom: '1rem', fontWeight: 'bold' }}>
-                    Scan to Pay ${totalPrice.toFixed(2)}
-                  </p>
-                  <div style={{
-                    width: '200px',
-                    height: '200px',
-                    background: '#f0f0f0',
-                    margin: '0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '8px',
-                    border: '2px dashed #ccc'
-                  }}>
-                    <div style={{ textAlign: 'center', color: '#666' }}>
-                      <QrCode size={64} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-                      <p style={{ fontSize: '0.875rem' }}>PayNow QR Code</p>
-                      <p style={{ fontSize: '0.75rem' }}>(Upload from Drive)</p>
-                    </div>
-                  </div>
-                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#666' }}>
-                    UEN: [Add your UEN number]
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -376,12 +505,33 @@ function Checkout() {
                   />
                 </div>
 
-                <button 
-                  type="submit" 
+                {error && (
+                  <div style={{
+                    background: '#f8d7da',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    color: '#721c24'
+                  }}>
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
                   className="btn btn-primary"
                   style={{ width: '100%', marginTop: '1rem' }}
+                  disabled={isSubmitting}
                 >
-                  {paymentMethod === 'stripe' ? 'Pay with Card' : 'Confirm PayNow Order'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader size={18} style={{ marginRight: '0.5rem', animation: 'spin 1s linear infinite' }} />
+                      Processing...
+                    </>
+                  ) : (
+                    'Place Order'
+                  )}
                 </button>
               </div>
             </form>

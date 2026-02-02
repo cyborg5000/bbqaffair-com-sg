@@ -6,6 +6,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     fetchOrders();
@@ -48,6 +49,78 @@ export default function AdminOrders() {
     }
   }
 
+  async function handleDelete(id) {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+
+    try {
+      // Delete order items first (foreign key constraint)
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', id);
+
+      if (itemsError) throw itemsError;
+
+      // Delete the order
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Error deleting order');
+    }
+  }
+
+  // Bulk selection handlers
+  function handleSelectAll(e) {
+    if (e.target.checked) {
+      setSelectedIds(orders.map(o => o.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }
+
+  function handleSelectOne(id) {
+    setSelectedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    );
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} order(s)?`)) return;
+
+    try {
+      // Delete order items first (foreign key constraint)
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .in('order_id', selectedIds);
+
+      if (itemsError) throw itemsError;
+
+      // Delete the orders
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      setSelectedIds([]);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting orders:', error);
+      alert('Error deleting orders');
+    }
+  }
+
   function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-SG', {
       year: 'numeric',
@@ -70,17 +143,41 @@ export default function AdminOrders() {
     return statusColors[status] || 'status-pending';
   }
 
+  const isAllSelected = orders.length > 0 && selectedIds.length === orders.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < orders.length;
+
   if (loading) return <AdminLayout><div className="loading">Loading...</div></AdminLayout>;
 
   return (
     <AdminLayout>
       <div className="admin-orders">
-        <h1>Orders</h1>
+        <div className="page-header">
+          <h1>Orders</h1>
+        </div>
+
+        {selectedIds.length > 0 && (
+          <div className="bulk-actions-bar">
+            <span className="selected-count">{selectedIds.length} selected</span>
+            <button onClick={handleBulkDelete} className="btn-delete-bulk">
+              🗑️ Delete Selected
+            </button>
+          </div>
+        )}
 
         <div className="orders-table-container">
           <table className="orders-table">
             <thead>
               <tr>
+                <th className="checkbox-cell">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isIndeterminate;
+                    }}
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th>Order #</th>
                 <th>Customer</th>
                 <th>Date</th>
@@ -91,7 +188,14 @@ export default function AdminOrders() {
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr key={order.id}>
+                <tr key={order.id} className={selectedIds.includes(order.id) ? 'selected-row' : ''}>
+                  <td className="checkbox-cell">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(order.id)}
+                      onChange={() => handleSelectOne(order.id)}
+                    />
+                  </td>
                   <td>#{order.id.slice(0, 8)}</td>
                   <td>
                     <div>{order.customer_name}</div>
@@ -119,6 +223,13 @@ export default function AdminOrders() {
                       className="btn-view"
                     >
                       👁️ View
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(order.id)}
+                      className="btn-delete"
+                      title="Delete order"
+                    >
+                      🗑️
                     </button>
                   </td>
                 </tr>

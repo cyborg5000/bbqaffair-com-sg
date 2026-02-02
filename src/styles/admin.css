@@ -274,6 +274,60 @@
   color: #1a1a1a;
 }
 
+/* Bulk Actions Bar */
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff3e0;
+  border: 1px solid #ffcc80;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.selected-count {
+  font-weight: 600;
+  color: #e65100;
+}
+
+.btn-delete-bulk {
+  padding: 0.5rem 1rem;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-delete-bulk:hover {
+  background: #c0392b;
+}
+
+/* Checkbox cell styling */
+.checkbox-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.checkbox-cell input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--ember-orange);
+}
+
+/* Selected row styling */
+.selected-row {
+  background: #fff8e1 !important;
+}
+
+.selected-row:hover {
+  background: #ffecb3 !important;
+}
+
 .btn-primary {
   padding: 0.75rem 1.5rem;
   background: var(--ember-orange);

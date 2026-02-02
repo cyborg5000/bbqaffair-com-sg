@@ -7,6 +7,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -270,6 +271,46 @@ export default function AdminProducts() {
     }
   }
 
+  // Bulk selection handlers
+  function handleSelectAll(e) {
+    if (e.target.checked) {
+      setSelectedIds(products.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }
+
+  function handleSelectOne(id) {
+    setSelectedIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    );
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} product(s)?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .in('id', selectedIds);
+
+      if (error) throw error;
+      setSelectedIds([]);
+      fetchProducts();
+    } catch (error) {
+      console.error('Error deleting products:', error);
+      alert('Error deleting products');
+    }
+  }
+
+  const isAllSelected = products.length > 0 && selectedIds.length === products.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < products.length;
+
   if (loading) return <AdminLayout><div className="loading">Loading...</div></AdminLayout>;
 
   return (
@@ -281,6 +322,15 @@ export default function AdminProducts() {
             ➕ Add Product
           </button>
         </div>
+
+        {selectedIds.length > 0 && (
+          <div className="bulk-actions-bar">
+            <span className="selected-count">{selectedIds.length} selected</span>
+            <button onClick={handleBulkDelete} className="btn-delete-bulk">
+              🗑️ Delete Selected
+            </button>
+          </div>
+        )}
 
         {showForm && (
           <div className="modal-overlay" onClick={() => setShowForm(false)}>
@@ -511,6 +561,16 @@ export default function AdminProducts() {
           <table className="products-table">
             <thead>
               <tr>
+                <th className="checkbox-cell">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isIndeterminate;
+                    }}
+                    onChange={handleSelectAll}
+                  />
+                </th>
                 <th>Image</th>
                 <th>Name</th>
                 <th>Category</th>
@@ -521,7 +581,14 @@ export default function AdminProducts() {
             </thead>
             <tbody>
               {products.map((product) => (
-                <tr key={product.id}>
+                <tr key={product.id} className={selectedIds.includes(product.id) ? 'selected-row' : ''}>
+                  <td className="checkbox-cell">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(product.id)}
+                      onChange={() => handleSelectOne(product.id)}
+                    />
+                  </td>
                   <td>
                     {product.image_url ? (
                       <img src={product.image_url} alt={product.name} className="product-thumb" />
