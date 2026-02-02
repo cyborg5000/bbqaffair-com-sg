@@ -21,13 +21,14 @@ function AboutSection() {
           </div>
           <div className="about-text">
             <p>
-              With years of experience in Singapore's catering scene, we've perfected
-              the art of BBQ. Our commitment to quality ingredients, authentic flavors,
+              With over 10 years of professional BBQ experience in Singapore's catering scene,
+              we've perfected the art of BBQ. Our commitment to quality ingredients, authentic flavors,
               and exceptional service has made us the preferred choice for hundreds of events.
             </p>
             <p>
-              From marinated meats grilled to perfection to our signature sauces,
-              every dish is crafted with passion and delivered with professionalism.
+              Providing Chef For Hire and premium BBQ food sales across Singapore. From marinated
+              meats grilled to perfection to our signature sauces, every dish is crafted with
+              passion and delivered with professionalism.
             </p>
           </div>
         </div>

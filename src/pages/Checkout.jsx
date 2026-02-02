@@ -137,24 +137,20 @@ function Checkout() {
                 <p style={{ fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--primary-color)', marginBottom: '1rem' }}>
                   Amount: ${createdOrder.total_amount.toFixed(2)}
                 </p>
-                <div style={{
-                  width: '200px',
-                  height: '200px',
-                  background: '#f0f0f0',
-                  margin: '0 auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  border: '2px dashed #ccc'
-                }}>
-                  <div style={{ textAlign: 'center', color: '#666' }}>
-                    <QrCode size={64} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
-                    <p style={{ fontSize: '0.875rem' }}>PayNow QR Code</p>
-                  </div>
-                </div>
+                <img
+                  src="/images/QRCode.jpeg"
+                  alt="PayNow QR Code"
+                  style={{
+                    width: '200px',
+                    height: '200px',
+                    objectFit: 'contain',
+                    margin: '0 auto',
+                    display: 'block',
+                    borderRadius: '8px'
+                  }}
+                />
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                  UEN: <strong>[Your UEN Number]</strong>
+                  UEN: <strong>53476778L</strong>
                 </p>
               </div>
 
@@ -198,10 +194,10 @@ function Checkout() {
                   Total: ${createdOrder.total_amount.toFixed(2)}
                 </p>
                 <p style={{ color: '#666', marginBottom: '0.5rem' }}>
-                  <strong>WhatsApp:</strong> +65 XXXX XXXX
+                  <strong>WhatsApp:</strong> <a href="https://wa.me/6588911844" style={{ color: 'var(--primary-color)' }}>+65 8891 1844</a>
                 </p>
                 <p style={{ color: '#666' }}>
-                  <strong>Email:</strong> info@bbqaffair.com.sg
+                  <strong>Email:</strong> <a href="mailto:lebbqaffair@gmail.com" style={{ color: 'var(--primary-color)' }}>lebbqaffair@gmail.com</a>
                 </p>
               </div>
 

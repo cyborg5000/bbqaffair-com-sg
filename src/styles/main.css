@@ -1175,6 +1175,87 @@ section {
 }
 
 /* ============================================
+   PARTNERS SECTION
+   ============================================ */
+
+.partners-section {
+  background: var(--char-black);
+  padding: 5rem 2rem;
+  position: relative;
+}
+
+.partners-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.partners-tagline {
+  font-family: var(--font-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--ember-orange);
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.partners-section .section-title {
+  color: var(--warm-white);
+  margin-bottom: 0.5rem;
+}
+
+.partners-section .section-subtitle {
+  color: var(--ash-gray);
+  margin-bottom: 3rem;
+}
+
+.partners-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3rem;
+}
+
+.partner-logo {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  transition: all 0.3s ease;
+}
+
+.partner-logo:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+}
+
+.partner-logo img {
+  max-width: 220px;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .partners-grid {
+    gap: 1.5rem;
+  }
+
+  .partner-logo {
+    padding: 1rem 1.5rem;
+  }
+
+  .partner-logo img {
+    max-width: 160px;
+    max-height: 90px;
+  }
+}
+
+/* ============================================
    CONTACT SECTION
    ============================================ */
 

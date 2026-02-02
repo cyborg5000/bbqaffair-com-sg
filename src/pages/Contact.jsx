@@ -14,7 +14,7 @@ function Contact() {
           textAlign: 'center'
         }}
       >
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Contact Us</h1>
+        <h1 style={{ fontSize: '3rem', marginBottom: '1rem', color: 'white' }}>Contact Us</h1>
         <p style={{ fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', opacity: 0.9 }}>
           Let's bring the sizzle to your next event
         </p>

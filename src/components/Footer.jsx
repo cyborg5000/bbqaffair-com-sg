@@ -35,8 +35,8 @@ function Footer() {
             <img src="/images/logo.png" alt="BBQ Affair" className="footer-logo-image" />
           </div>
           <p className="footer-description">
-            Premium BBQ catering services in Singapore.
-            Making your events memorable with authentic flavors.
+            Professional BBQ Chef with 10 years in the industry.
+            Providing Chef For Hire & Sales of food in Singapore.
           </p>
           <div className="footer-social">
             <a href="#" className="social-link" aria-label="Facebook">
@@ -73,15 +73,15 @@ function Footer() {
           <ul className="footer-contact">
             <li>
               <Phone size={16} />
-              <span>+65 XXXX XXXX</span>
+              <a href="https://wa.me/6588911844" style={{ color: 'inherit', textDecoration: 'none' }}>+65 8891 1844</a>
             </li>
             <li>
               <Mail size={16} />
-              <span>info@bbqaffair.com.sg</span>
+              <a href="mailto:lebbqaffair@gmail.com" style={{ color: 'inherit', textDecoration: 'none' }}>lebbqaffair@gmail.com</a>
             </li>
             <li>
               <MapPin size={16} />
-              <span>Singapore (Island-wide)</span>
+              <span>59 Lengkok Bahru, Block 59, Singapore 150059</span>
             </li>
           </ul>
         </div>

@@ -19,7 +19,7 @@ function WhatsAppButton() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const phoneNumber = '+6591872356'; // Update with actual number
+  const phoneNumber = '+6588911844';
   const message = 'Hi BBQAffair! I have a question about your catering services.';
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 

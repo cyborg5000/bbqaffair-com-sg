@@ -41,8 +41,8 @@ function ContactForm() {
               <Phone size={20} />
             </div>
             <div className="contact-item-content">
-              <strong>Phone</strong>
-              <p>+65 XXXX XXXX</p>
+              <strong>Phone / WhatsApp</strong>
+              <p><a href="https://wa.me/6588911844" style={{ color: 'inherit' }}>+65 8891 1844</a></p>
             </div>
           </div>
 
@@ -52,7 +52,7 @@ function ContactForm() {
             </div>
             <div className="contact-item-content">
               <strong>Email</strong>
-              <p>info@bbqaffair.com.sg</p>
+              <p><a href="mailto:lebbqaffair@gmail.com" style={{ color: 'inherit' }}>lebbqaffair@gmail.com</a></p>
             </div>
           </div>
 
@@ -62,7 +62,7 @@ function ContactForm() {
             </div>
             <div className="contact-item-content">
               <strong>Location</strong>
-              <p>Singapore (Island-wide service)</p>
+              <p>59 Lengkok Bahru, Block 59<br />Singapore 150059</p>
             </div>
           </div>
 

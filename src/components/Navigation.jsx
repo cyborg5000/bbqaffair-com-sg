@@ -51,7 +51,7 @@ function Navigation() {
             </button>
           </li>
           <li>
-            <Link to="/contact" className="nav-cta">
+            <Link to="/menu" className="nav-cta">
               Book Now
             </Link>
           </li>
@@ -108,7 +108,7 @@ function Navigation() {
             </li>
           </ul>
           <div className="mobile-menu-cta">
-            <Link to="/contact" onClick={closeMobileMenu}>
+            <Link to="/menu" onClick={closeMobileMenu}>
               Book Now
             </Link>
           </div>
