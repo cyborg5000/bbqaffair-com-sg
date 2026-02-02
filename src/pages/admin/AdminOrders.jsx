@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
 
@@ -20,7 +20,13 @@ export default function AdminOrders() {
           *,
           order_items (
             *,
-            product:products (name)
+            product:products (name),
+            order_item_addons (
+              id,
+              addon_name,
+              addon_price,
+              quantity
+            )
           )
         `)
         .order('created_at', { ascending: false });
@@ -266,12 +272,27 @@ export default function AdminOrders() {
                     </thead>
                     <tbody>
                       {selectedOrder.order_items?.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.product?.name || 'Unknown Product'}</td>
-                          <td>{item.quantity}</td>
-                          <td>${item.price_at_time.toFixed(2)}</td>
-                          <td>${(item.quantity * item.price_at_time).toFixed(2)}</td>
-                        </tr>
+                        <React.Fragment key={item.id}>
+                          <tr>
+                            <td>{item.product_name || item.product?.name || 'Unknown Product'}</td>
+                            <td>{item.quantity}</td>
+                            <td>${(item.price_at_time || item.price || 0).toFixed(2)}</td>
+                            <td>${(item.quantity * (item.price_at_time || item.price || 0)).toFixed(2)}</td>
+                          </tr>
+                          {/* Display Add-Ons */}
+                          {item.order_item_addons && item.order_item_addons.length > 0 && (
+                            item.order_item_addons.map(addon => (
+                              <tr key={addon.id} className="addon-row">
+                                <td style={{ paddingLeft: '1.5rem', color: '#3b82f6', fontSize: '0.875rem' }}>
+                                  + {addon.addon_name}
+                                </td>
+                                <td style={{ color: '#666', fontSize: '0.875rem' }}>{addon.quantity}</td>
+                                <td style={{ color: '#3b82f6', fontSize: '0.875rem' }}>+${addon.addon_price.toFixed(2)}</td>
+                                <td style={{ color: '#3b82f6', fontSize: '0.875rem' }}>+${(addon.quantity * addon.addon_price).toFixed(2)}</td>
+                              </tr>
+                            ))
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>

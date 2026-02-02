@@ -19,10 +19,22 @@ export function CartProvider({ children }) {
     localStorage.setItem('bbqaffair-cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
+  // Helper to get unique cart item key (product_id + option_id + addons)
+  const getItemKey = useCallback((item) => {
+    let key = String(item.id);
+    if (item.optionId) {
+      key += `-${item.optionId}`;
+    }
+    // Include addons in key (sorted by id for consistency)
+    if (item.addons && item.addons.length > 0) {
+      const addonIds = item.addons.map(a => a.id).sort().join(',');
+      key += `-addons:${addonIds}`;
+    }
+    return key;
+  }, []);
+
   const addToCart = useCallback((item) => {
     setCartItems(prev => {
-      // Create unique key: product_id + option_id (for products with options)
-      const getItemKey = (i) => i.optionId ? `${i.id}-${i.optionId}` : String(i.id);
       const itemKey = getItemKey(item);
 
       const existing = prev.find(i => getItemKey(i) === itemKey);
@@ -36,24 +48,21 @@ export function CartProvider({ children }) {
       return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
     setIsCartOpen(true);
-  }, []);
+  }, [getItemKey]);
 
-  // Helper to get unique cart item key
-  const getItemKey = useCallback((item) => {
-    return item.optionId ? `${item.id}-${item.optionId}` : String(item.id);
-  }, []);
-
-  const removeFromCart = useCallback((itemId, optionId = null) => {
-    const keyToRemove = optionId ? `${itemId}-${optionId}` : String(itemId);
+  // Remove item - accepts full item object to properly match with addons
+  const removeFromCart = useCallback((item) => {
+    const keyToRemove = getItemKey(item);
     setCartItems(prev => prev.filter(i => getItemKey(i) !== keyToRemove));
   }, [getItemKey]);
 
-  const updateQuantity = useCallback((itemId, quantity, optionId = null) => {
+  // Update quantity - accepts full item object to properly match with addons
+  const updateQuantity = useCallback((item, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(itemId, optionId);
+      removeFromCart(item);
       return;
     }
-    const keyToUpdate = optionId ? `${itemId}-${optionId}` : String(itemId);
+    const keyToUpdate = getItemKey(item);
     setCartItems(prev =>
       prev.map(i => getItemKey(i) === keyToUpdate ? { ...i, quantity } : i)
     );

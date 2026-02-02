@@ -51,14 +51,31 @@ export async function createOrder(orderData) {
   return data;
 }
 
-// Create order items
+// Create order items (returns created items with IDs)
 export async function createOrderItems(orderItems) {
   const { data, error } = await supabase
     .from('order_items')
-    .insert(orderItems);
-  
+    .insert(orderItems)
+    .select();
+
   if (error) {
     console.error('Error creating order items:', error);
+    return null;
+  }
+  return data;
+}
+
+// Create order item addons
+export async function createOrderItemAddons(orderItemAddons) {
+  if (!orderItemAddons || orderItemAddons.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('order_item_addons')
+    .insert(orderItemAddons)
+    .select();
+
+  if (error) {
+    console.error('Error creating order item addons:', error);
     return null;
   }
   return data;

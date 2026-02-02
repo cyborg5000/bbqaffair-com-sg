@@ -105,8 +105,12 @@ function Cart() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {cartItems.map(item => {
-                const itemKey = item.optionId ? `${item.id}-${item.optionId}` : item.id;
+              {cartItems.map((item, index) => {
+                // Generate unique key including addons
+                let itemKey = item.optionId ? `${item.id}-${item.optionId}` : String(item.id);
+                if (item.addons && item.addons.length > 0) {
+                  itemKey += `-addons:${item.addons.map(a => a.id).sort().join(',')}`;
+                }
                 const displayPrice = typeof item.price === 'number'
                   ? `$${item.price.toFixed(2)}`
                   : item.price;
@@ -120,7 +124,7 @@ function Cart() {
                       borderRadius: '8px',
                       display: 'flex',
                       gap: '1rem',
-                      alignItems: 'center'
+                      alignItems: 'flex-start'
                     }}
                   >
                     <div style={{ flex: 1 }}>
@@ -132,6 +136,26 @@ function Cart() {
                           </span>
                         )}
                       </h4>
+                      {/* Display Add-Ons */}
+                      {item.addons && item.addons.length > 0 && (
+                        <div style={{
+                          margin: '0.375rem 0',
+                          fontSize: '0.8rem',
+                          color: '#666'
+                        }}>
+                          {item.addons.map(addon => (
+                            <div key={addon.id} style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              padding: '0.125rem 0',
+                              color: '#3b82f6'
+                            }}>
+                              <span>+ {addon.name}</span>
+                              <span>+${parseFloat(addon.price).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
                         {item.originalPrice && item.originalPrice > item.price && (
                           <span style={{ textDecoration: 'line-through', marginRight: '0.5rem', color: '#999' }}>
@@ -155,7 +179,7 @@ function Cart() {
                       padding: '0.25rem'
                     }}>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1, item.optionId)}
+                        onClick={() => updateQuantity(item, item.quantity - 1)}
                         style={{
                           width: '32px',
                           height: '32px',
@@ -178,7 +202,7 @@ function Cart() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.optionId)}
+                        onClick={() => updateQuantity(item, item.quantity + 1)}
                         style={{
                           width: '32px',
                           height: '32px',
@@ -197,7 +221,7 @@ function Cart() {
 
                     {/* Remove Button */}
                     <button
-                      onClick={() => removeFromCart(item.id, item.optionId)}
+                      onClick={() => removeFromCart(item)}
                       style={{
                         background: 'none',
                         border: 'none',

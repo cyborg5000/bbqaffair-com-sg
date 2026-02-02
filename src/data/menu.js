@@ -52,7 +52,7 @@ export async function fetchAddOns() {
   }));
 }
 
-// Fetch all products from Supabase (with options)
+// Fetch all products from Supabase (with options and addons)
 export async function fetchProducts() {
   const { data, error } = await supabase
     .from('products')
@@ -66,6 +66,13 @@ export async function fetchProducts() {
         display_order,
         is_default,
         is_active
+      ),
+      product_addons(
+        id,
+        name,
+        price,
+        display_order,
+        is_active
       )
     `)
     .order('category', { ascending: true })
@@ -76,16 +83,19 @@ export async function fetchProducts() {
     return [];
   }
 
-  // Filter and sort options for each product
+  // Filter and sort options/addons for each product
   return (data || []).map(product => ({
     ...product,
     product_options: (product.product_options || [])
       .filter(opt => opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order),
+    product_addons: (product.product_addons || [])
+      .filter(addon => addon.is_active)
       .sort((a, b) => a.display_order - b.display_order)
   }));
 }
 
-// Fetch single product with options (for ProductDetail page)
+// Fetch single product with options and addons (for ProductDetail page)
 export async function fetchProductById(id) {
   const { data, error } = await supabase
     .from('products')
@@ -98,6 +108,13 @@ export async function fetchProductById(id) {
         original_price,
         display_order,
         is_default,
+        is_active
+      ),
+      product_addons(
+        id,
+        name,
+        price,
+        display_order,
         is_active
       )
     `)
@@ -113,6 +130,9 @@ export async function fetchProductById(id) {
     ...data,
     product_options: (data.product_options || [])
       .filter(opt => opt.is_active)
+      .sort((a, b) => a.display_order - b.display_order),
+    product_addons: (data.product_addons || [])
+      .filter(addon => addon.is_active)
       .sort((a, b) => a.display_order - b.display_order)
   };
 }

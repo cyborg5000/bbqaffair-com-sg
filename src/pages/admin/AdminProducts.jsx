@@ -22,6 +22,7 @@ export default function AdminProducts() {
     unit_label: '',
     has_options: false,
     options: [],
+    addons: [],
   });
 
   useEffect(() => {
@@ -41,6 +42,13 @@ export default function AdminProducts() {
             original_price,
             display_order,
             is_default,
+            is_active
+          ),
+          product_addons(
+            id,
+            name,
+            price,
+            display_order,
             is_active
           )
         `)
@@ -70,6 +78,17 @@ export default function AdminProducts() {
         is_active: opt.is_active,
       }));
 
+    // Sort addons by display_order
+    const sortedAddons = (product.product_addons || [])
+      .sort((a, b) => a.display_order - b.display_order)
+      .map(addon => ({
+        id: addon.id,
+        name: addon.name,
+        price: addon.price,
+        display_order: addon.display_order,
+        is_active: addon.is_active,
+      }));
+
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -80,6 +99,7 @@ export default function AdminProducts() {
       unit_label: product.unit_label || '',
       has_options: product.has_options || false,
       options: sortedOptions,
+      addons: sortedAddons,
     });
     setShowForm(true);
   }
@@ -96,6 +116,7 @@ export default function AdminProducts() {
       unit_label: '',
       has_options: false,
       options: [],
+      addons: [],
     });
     setShowForm(true);
   }
@@ -203,6 +224,58 @@ export default function AdminProducts() {
         }
       }
 
+      // Save add-ons
+      // First, get existing addon IDs to handle deletions
+      const existingAddonIds = formData.addons
+        .filter(addon => addon.id)
+        .map(addon => addon.id);
+
+      if (editingProduct) {
+        // Delete addons that were removed
+        if (existingAddonIds.length > 0) {
+          await supabase
+            .from('product_addons')
+            .delete()
+            .eq('product_id', productId)
+            .not('id', 'in', `(${existingAddonIds.join(',')})`);
+        } else {
+          // Delete all existing addons
+          await supabase
+            .from('product_addons')
+            .delete()
+            .eq('product_id', productId);
+        }
+      }
+
+      // Save each addon
+      for (let i = 0; i < formData.addons.length; i++) {
+        const addon = formData.addons[i];
+        const addonData = {
+          product_id: productId,
+          name: addon.name,
+          price: parseFloat(addon.price) || 0,
+          display_order: i,
+          is_active: true,
+        };
+
+        if (addon.id) {
+          // Update existing addon
+          const { error: updateError } = await supabase
+            .from('product_addons')
+            .update(addonData)
+            .eq('id', addon.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Create new addon
+          const { error: insertError } = await supabase
+            .from('product_addons')
+            .insert([addonData]);
+
+          if (insertError) throw insertError;
+        }
+      }
+
       setShowForm(false);
       fetchProducts();
     } catch (error) {
@@ -253,6 +326,39 @@ export default function AdminProducts() {
     setFormData(prev => ({
       ...prev,
       options: prev.options.filter((_, i) => i !== index),
+    }));
+  }
+
+  // Add-on management helpers
+  function addAddon() {
+    setFormData(prev => ({
+      ...prev,
+      addons: [
+        ...prev.addons,
+        {
+          id: null,
+          name: '',
+          price: '',
+          display_order: prev.addons.length,
+          is_active: true,
+        },
+      ],
+    }));
+  }
+
+  function updateAddon(index, field, value) {
+    setFormData(prev => ({
+      ...prev,
+      addons: prev.addons.map((addon, i) =>
+        i === index ? { ...addon, [field]: value } : addon
+      ),
+    }));
+  }
+
+  function removeAddon(index) {
+    setFormData(prev => ({
+      ...prev,
+      addons: prev.addons.filter((_, i) => i !== index),
     }));
   }
 
@@ -540,6 +646,94 @@ export default function AdminProducts() {
                     </p>
                   </div>
                 )}
+
+                {/* Add-ons Editor */}
+                <div className="addons-section" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f0f7ff', borderRadius: '8px', border: '1px solid #cce0ff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ margin: 0, color: '#1a5fb4' }}>➕ Add-Ons (Optional Extras)</h4>
+                    <button
+                      type="button"
+                      onClick={addAddon}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.875rem',
+                        background: '#1a5fb4',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      + Add Add-On
+                    </button>
+                  </div>
+
+                  {formData.addons.length === 0 ? (
+                    <div style={{ color: '#666', textAlign: 'center', padding: '1.5rem 1rem', background: 'white', borderRadius: '6px', border: '2px dashed #cce0ff' }}>
+                      <p style={{ margin: '0 0 0.5rem 0' }}>No add-ons yet.</p>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: '#888' }}>Add-ons are optional extras customers can select (e.g., Extra Sauce +$2)</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {formData.addons.map((addon, index) => (
+                        <div
+                          key={addon.id || `new-addon-${index}`}
+                          style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '0.5rem',
+                            alignItems: 'center',
+                            padding: '0.75rem',
+                            background: 'white',
+                            borderRadius: '6px',
+                            border: '1px solid #cce0ff',
+                          }}
+                        >
+                          <input
+                            type="text"
+                            placeholder="Add-on name (e.g., Extra Sauce)"
+                            value={addon.name}
+                            onChange={(e) => updateAddon(index, 'name', e.target.value)}
+                            required
+                            style={{ padding: '0.5rem', flex: '1 1 200px', minWidth: '150px' }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ color: '#666' }}>+$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0.00"
+                              value={addon.price}
+                              onChange={(e) => updateAddon(index, 'price', e.target.value)}
+                              required
+                              style={{ padding: '0.5rem', width: '80px' }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAddon(index)}
+                            style={{
+                              background: '#ffebee',
+                              border: 'none',
+                              padding: '0.5rem 0.75rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                            title="Remove add-on"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: '0.75rem', color: '#5a8dd6', marginTop: '0.75rem' }}>
+                    💡 Add-ons are optional extras that customers can select when ordering this product.
+                  </p>
+                </div>
 
                 <div className="form-actions">
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">

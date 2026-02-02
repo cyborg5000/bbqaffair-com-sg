@@ -15,6 +15,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedAddons, setSelectedAddons] = useState([]);
 
   useEffect(() => {
     async function loadProduct() {
@@ -31,15 +32,34 @@ export default function ProductDetail() {
         setSelectedOption(null);
       }
 
+      // Reset selected addons
+      setSelectedAddons([]);
+
       setLoading(false);
     }
     loadProduct();
   }, [id]);
 
   // Calculate current and original price based on selection
-  const currentPrice = selectedOption?.current_price ?? product?.price ?? 0;
+  const basePrice = selectedOption?.current_price ?? product?.price ?? 0;
   const originalPrice = selectedOption?.original_price ?? null;
-  const hasDiscount = originalPrice && originalPrice > currentPrice;
+  const hasDiscount = originalPrice && originalPrice > basePrice;
+
+  // Calculate add-ons total
+  const addonsTotal = selectedAddons.reduce((sum, addon) => sum + parseFloat(addon.price), 0);
+  const currentPrice = basePrice + addonsTotal;
+
+  // Toggle addon selection
+  function toggleAddon(addon) {
+    setSelectedAddons(prev => {
+      const exists = prev.find(a => a.id === addon.id);
+      if (exists) {
+        return prev.filter(a => a.id !== addon.id);
+      } else {
+        return [...prev, { id: addon.id, name: addon.name, price: addon.price }];
+      }
+    });
+  }
 
   function handleAddToCart() {
     if (!product) return;
@@ -54,6 +74,7 @@ export default function ProductDetail() {
       optionName: selectedOption?.name || null,
       unitLabel: product.unit_label || null,
       originalPrice: originalPrice,
+      addons: selectedAddons.length > 0 ? selectedAddons : null,
     });
 
     setAddedToCart(true);
@@ -149,6 +170,29 @@ export default function ProductDetail() {
                       </span>
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add-Ons Selector */}
+            {product.product_addons?.length > 0 && (
+              <div className="addons-section">
+                <label>Add-Ons (Optional):</label>
+                <div className="addons-list">
+                  {product.product_addons
+                    .filter(addon => addon.is_active)
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .map(addon => (
+                      <label key={addon.id} className="addon-item">
+                        <input
+                          type="checkbox"
+                          checked={selectedAddons.some(a => a.id === addon.id)}
+                          onChange={() => toggleAddon(addon)}
+                        />
+                        <span className="addon-name">{addon.name}</span>
+                        <span className="addon-price">+${parseFloat(addon.price).toFixed(2)}</span>
+                      </label>
+                    ))}
                 </div>
               </div>
             )}

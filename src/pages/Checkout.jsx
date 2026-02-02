@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { createOrder, createOrderItems } from '../lib/supabase';
+import { createOrder, createOrderItems, createOrderItemAddons } from '../lib/supabase';
 import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart, Loader } from 'lucide-react';
 
 function Checkout() {
@@ -60,7 +60,7 @@ function Checkout() {
       }
 
       // Create order items
-      const orderItems = cartItems.map(item => ({
+      const orderItemsData = cartItems.map(item => ({
         order_id: order.id,
         product_id: item.id,
         product_name: item.optionName ? `${item.name} - ${item.optionName}` : item.name,
@@ -68,7 +68,31 @@ function Checkout() {
         quantity: item.quantity
       }));
 
-      await createOrderItems(orderItems);
+      const createdOrderItems = await createOrderItems(orderItemsData);
+
+      // Create order item addons (if any items have addons)
+      if (createdOrderItems && createdOrderItems.length > 0) {
+        const orderItemAddons = [];
+        cartItems.forEach((item, index) => {
+          if (item.addons && item.addons.length > 0) {
+            const orderItem = createdOrderItems[index];
+            if (orderItem) {
+              item.addons.forEach(addon => {
+                orderItemAddons.push({
+                  order_item_id: orderItem.id,
+                  addon_name: addon.name,
+                  addon_price: parseFloat(addon.price),
+                  quantity: item.quantity
+                });
+              });
+            }
+          }
+        });
+
+        if (orderItemAddons.length > 0) {
+          await createOrderItemAddons(orderItemAddons);
+        }
+      }
 
       // Store created order and show confirmation
       setCreatedOrder(order);
@@ -295,8 +319,12 @@ function Checkout() {
                 Order Summary ({cartItems.length} items)
               </h3>
               
-              {cartItems.map(item => {
-                const itemKey = item.optionId ? `${item.id}-${item.optionId}` : item.id;
+              {cartItems.map((item, index) => {
+                // Generate unique key including addons
+                let itemKey = item.optionId ? `${item.id}-${item.optionId}` : String(item.id);
+                if (item.addons && item.addons.length > 0) {
+                  itemKey += `-addons:${item.addons.map(a => a.id).sort().join(',')}`;
+                }
                 const displayPrice = typeof item.price === 'number'
                   ? `$${item.price.toFixed(2)}`
                   : item.price;
@@ -308,30 +336,51 @@ function Checkout() {
                   <div
                     key={itemKey}
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
                       padding: '1rem 0',
                       borderBottom: '1px solid #ddd'
                     }}
                   >
-                    <div>
-                      <p style={{ fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>
-                        {item.name}
-                        {item.optionName && (
-                          <span style={{ fontWeight: 'normal', color: 'var(--primary-color)' }}>
-                            {' '}- {item.optionName}
-                          </span>
-                        )}
-                      </p>
-                      <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
-                        {displayPrice}
-                        {item.unitLabel && ` / ${item.unitLabel}`}
-                        {' '} × {item.quantity}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div>
+                        <p style={{ fontWeight: 'bold', margin: '0 0 0.25rem 0' }}>
+                          {item.name}
+                          {item.optionName && (
+                            <span style={{ fontWeight: 'normal', color: 'var(--primary-color)' }}>
+                              {' '}- {item.optionName}
+                            </span>
+                          )}
+                        </p>
+                        <p style={{ margin: 0, color: '#666', fontSize: '0.875rem' }}>
+                          {displayPrice}
+                          {item.unitLabel && ` / ${item.unitLabel}`}
+                          {' '} × {item.quantity}
+                        </p>
+                      </div>
+                      <p style={{ fontWeight: 'bold', color: 'var(--primary-color)', margin: 0 }}>
+                        {lineTotal}
                       </p>
                     </div>
-                    <p style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                      {lineTotal}
-                    </p>
+                    {/* Display Add-Ons */}
+                    {item.addons && item.addons.length > 0 && (
+                      <div style={{
+                        marginTop: '0.5rem',
+                        paddingLeft: '1rem',
+                        fontSize: '0.8rem',
+                        color: '#666'
+                      }}>
+                        {item.addons.map(addon => (
+                          <div key={addon.id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            padding: '0.125rem 0',
+                            color: '#3b82f6'
+                          }}>
+                            <span>+ {addon.name}</span>
+                            <span>+${parseFloat(addon.price).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
