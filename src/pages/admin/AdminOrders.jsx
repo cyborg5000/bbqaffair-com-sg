@@ -159,18 +159,20 @@ export default function AdminOrders() {
     const grayColor = [100, 100, 100];
     const headerBgColor = [51, 51, 51]; // #333333 - dark background to match logo
 
-    // Load logo image
-    const logoUrl = 'https://bbqaffair.com.sg/images/logo.png';
+    // Load logo image from local public folder (avoids CORS issues)
+    const logoUrl = '/images/logo.png';
     let logoData = null;
 
     try {
       const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      logoData = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
+      if (response.ok) {
+        const blob = await response.blob();
+        logoData = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      }
     } catch (err) {
       console.error('Failed to load logo:', err);
     }
