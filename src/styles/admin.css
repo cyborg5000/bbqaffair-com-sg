@@ -358,6 +358,26 @@
   background: #d0d0d0;
 }
 
+/* Override main.css button animations for admin panel */
+.admin-layout .btn-primary,
+.admin-layout .btn-secondary,
+.admin-login .btn-login {
+  position: relative;
+  overflow: visible;
+  transform: none;
+}
+
+.admin-layout .btn-primary::before,
+.admin-layout .btn-secondary::before {
+  display: none;
+}
+
+.admin-layout .btn-primary:hover,
+.admin-layout .btn-secondary:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Tables */
 .products-table-container,
 .orders-table-container {
