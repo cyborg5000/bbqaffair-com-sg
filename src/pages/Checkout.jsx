@@ -149,10 +149,22 @@ function Checkout() {
           })
         });
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Edge function error:', response.status, errorText);
+          throw new Error(`Payment service error: ${response.status}`);
+        }
+
         const data = await response.json();
+        console.log('Stripe response:', data);
 
         if (data.error) {
           throw new Error(data.error);
+        }
+
+        if (!data.url) {
+          console.error('No URL in response:', data);
+          throw new Error('Payment redirect URL not received');
         }
 
         // Clear cart before redirect (order is created, payment pending)
