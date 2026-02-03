@@ -1,5 +1,5 @@
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno&deno-std=0.132.0&no-check";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3?target=deno&deno-std=0.132.0&no-check";
+import Stripe from "npm:stripe@14.21.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,10 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") as string, {
-      apiVersion: "2023-10-16",
-      httpClient: Stripe.createFetchHttpClient(),
-    });
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!);
 
     const body = await req.json();
 
@@ -36,8 +33,8 @@ Deno.serve(async (req) => {
 
       if (session.payment_status === "paid") {
         // Update order in database
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         const orderId = session.metadata?.order_id;
@@ -83,7 +80,7 @@ Deno.serve(async (req) => {
       payment_method_types: ["card"],
       mode: "payment",
       customer_email: customer_email,
-      line_items: line_items.map((item: any) => ({
+      line_items: line_items.map((item: { name: string; description?: string; price: number; quantity: number }) => ({
         price_data: {
           currency: "sgd",
           product_data: {
@@ -102,8 +99,8 @@ Deno.serve(async (req) => {
     });
 
     // Update order with stripe session ID
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     await supabase
@@ -118,7 +115,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error creating checkout session:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
