@@ -336,7 +336,14 @@ export default function AdminOrders() {
       }
     });
 
+    const pageHeight = doc.internal.pageSize.getHeight();
     yPos = doc.lastAutoTable.finalY + 10;
+
+    // Check if we need a new page for the total box
+    if (yPos + 30 > pageHeight - 40) {
+      doc.addPage();
+      yPos = 20;
+    }
 
     // Total Box
     doc.setFillColor(...primaryColor);
@@ -353,8 +360,17 @@ export default function AdminOrders() {
 
     // Notes Section (if any)
     if (order.notes) {
+      const splitNotes = doc.splitTextToSize(order.notes, pageWidth - 50);
+      const notesHeight = 20 + (splitNotes.length * 5);
+
+      // Check if we need a new page for notes
+      if (yPos + notesHeight > pageHeight - 40) {
+        doc.addPage();
+        yPos = 20;
+      }
+
       doc.setFillColor(231, 243, 255);
-      doc.roundedRect(14, yPos, pageWidth - 28, 25, 3, 3, 'F');
+      doc.roundedRect(14, yPos, pageWidth - 28, Math.max(25, notesHeight), 3, 3, 'F');
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
@@ -363,22 +379,26 @@ export default function AdminOrders() {
 
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(0, 0, 0);
-      const splitNotes = doc.splitTextToSize(order.notes, pageWidth - 50);
       doc.text(splitNotes, 20, yPos + 18);
 
-      yPos += 35;
+      yPos += notesHeight + 10;
     }
 
-    // Footer
-    const footerY = doc.internal.pageSize.getHeight() - 25;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, footerY, pageWidth - 14, footerY);
+    // Add footer to each page
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      const footerY = pageHeight - 25;
 
-    doc.setFontSize(9);
-    doc.setTextColor(...grayColor);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Thank you for choosing BBQ Affair!', pageWidth / 2, footerY + 8, { align: 'center' });
-    doc.text('Contact: lebbqaffair@gmail.com | www.bbqaffair.com.sg', pageWidth / 2, footerY + 14, { align: 'center' });
+      doc.setDrawColor(200, 200, 200);
+      doc.line(14, footerY, pageWidth - 14, footerY);
+
+      doc.setFontSize(9);
+      doc.setTextColor(...grayColor);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Thank you for choosing BBQ Affair!', pageWidth / 2, footerY + 8, { align: 'center' });
+      doc.text(`Contact: lebbqaffair@gmail.com | www.bbqaffair.com.sg | Page ${i} of ${totalPages}`, pageWidth / 2, footerY + 14, { align: 'center' });
+    }
 
     // Save the PDF
     doc.save(`BBQ-Affair-Order-${order.id.slice(0, 8).toUpperCase()}.pdf`);
