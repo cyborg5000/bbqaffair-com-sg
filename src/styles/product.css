@@ -59,6 +59,16 @@
   padding: 2rem;
 }
 
+/* Sticky image on desktop */
+@media (min-width: 969px) {
+  .product-image-section {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+    height: fit-content;
+  }
+}
+
 .product-image-main {
   width: 100%;
   max-width: 500px;
