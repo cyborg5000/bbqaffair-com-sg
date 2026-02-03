@@ -204,33 +204,33 @@ export default function AdminOrders() {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('ORDER CONFIRMATION', pageWidth / 2, 58, { align: 'center' });
+    doc.text('ORDER CONFIRMATION', pageWidth / 2, 63, { align: 'center' });
 
     // Order Info Box
     doc.setDrawColor(...primaryColor);
     doc.setLineWidth(0.5);
-    doc.roundedRect(14, 65, pageWidth - 28, 25, 3, 3, 'S');
+    doc.roundedRect(14, 70, pageWidth - 28, 25, 3, 3, 'S');
 
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primaryColor);
-    doc.text(`Order #${order.id.slice(0, 8).toUpperCase()}`, 20, 75);
+    doc.text(`Order #${order.id.slice(0, 8).toUpperCase()}`, 20, 80);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...grayColor);
-    doc.text(`Date: ${formatDate(order.created_at)}`, 20, 83);
+    doc.text(`Date: ${formatDate(order.created_at)}`, 20, 88);
 
     // Status badge
     const statusText = order.status.charAt(0).toUpperCase() + order.status.slice(1);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Status: ${statusText}`, pageWidth - 60, 75);
+    doc.text(`Status: ${statusText}`, pageWidth - 60, 80);
 
     // Payment info
     const paymentMethod = order.payment_method === 'stripe' ? 'Credit Card' : 'PayNow';
     doc.setFont('helvetica', 'normal');
-    doc.text(`Payment: ${paymentMethod}`, pageWidth - 60, 83);
+    doc.text(`Payment: ${paymentMethod}`, pageWidth - 60, 88);
 
-    let yPos = 100;
+    let yPos = 105;
 
     // Customer Information Section
     doc.setFillColor(248, 248, 248);
