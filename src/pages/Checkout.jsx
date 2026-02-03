@@ -175,7 +175,21 @@ function Checkout() {
         return;
       }
 
-      // For PayNow - show confirmation page
+      // For PayNow - send notification emails and show confirmation page
+      try {
+        await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'notify-paynow',
+            order_id: order.id
+          })
+        });
+      } catch (notifyErr) {
+        console.error('Failed to send PayNow notification:', notifyErr);
+        // Don't block the order confirmation even if notification fails
+      }
+
       setCreatedOrder(order);
       setOrderCreated(true);
       clearCart();
