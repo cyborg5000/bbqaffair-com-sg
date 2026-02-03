@@ -167,6 +167,8 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
 
   const resend = new Resend(resendApiKey);
   const itemsHtml = buildItemsHtml(orderItems, true); // Include images
+  const isPayNow = order.payment_method === 'paynow';
+  const PAYNOW_QR_URL = "https://bbqaffair.com.sg/images/QRCode.jpeg";
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -185,13 +187,36 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
         </div>
 
         <!-- Success Banner -->
-        <div style="background: #d4edda; padding: 25px 20px; text-align: center; border-bottom: 3px solid #28a745;">
-          <div style="font-size: 50px; margin-bottom: 10px;">✓</div>
-          <h1 style="color: #155724; margin: 0 0 10px 0; font-size: 24px;">Order Confirmed!</h1>
-          <p style="color: #155724; margin: 0; font-size: 16px;">Thank you for your order, <strong>${order.customer_name}</strong>!</p>
+        <div style="background: ${isPayNow ? '#fff3cd' : '#d4edda'}; padding: 25px 20px; text-align: center; border-bottom: 3px solid ${isPayNow ? '#ffc107' : '#28a745'};">
+          <div style="font-size: 50px; margin-bottom: 10px;">${isPayNow ? '📱' : '✓'}</div>
+          <h1 style="color: ${isPayNow ? '#856404' : '#155724'}; margin: 0 0 10px 0; font-size: 24px;">${isPayNow ? 'Order Received - Payment Pending' : 'Order Confirmed!'}</h1>
+          <p style="color: ${isPayNow ? '#856404' : '#155724'}; margin: 0; font-size: 16px;">Thank you for your order, <strong>${order.customer_name}</strong>!</p>
         </div>
 
         <div style="padding: 30px 25px;">
+
+          ${isPayNow ? `
+          <!-- PayNow Payment Section -->
+          <div style="background: #17a2b8; color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; text-align: center;">
+            <h2 style="margin: 0 0 15px 0; font-size: 20px;">📱 Complete Your Payment via PayNow</h2>
+            <p style="margin: 0 0 20px 0; font-size: 14px; opacity: 0.9;">Scan the QR code below to complete your payment</p>
+            <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block;">
+              <img src="${PAYNOW_QR_URL}" alt="PayNow QR Code" style="width: 200px; height: 200px; object-fit: contain;">
+              <p style="margin: 15px 0 5px 0; color: #333; font-size: 24px; font-weight: bold;">$${order.total_amount.toFixed(2)}</p>
+              <p style="margin: 0; color: #666; font-size: 12px;">UEN: <strong>53476778L</strong></p>
+            </div>
+          </div>
+
+          <!-- Important Notice for PayNow -->
+          <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+            <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ Important Notice</h3>
+            <ul style="margin: 0; padding-left: 20px; color: #856404;">
+              <li style="margin-bottom: 8px;"><strong>Your order will only be processed once we confirm your payment.</strong></li>
+              <li style="margin-bottom: 8px;">Please include your <strong>Order Number #${order.id.slice(0, 8).toUpperCase()}</strong> in the payment reference</li>
+              <li>We will contact you within 24 hours to confirm receipt of payment</li>
+            </ul>
+          </div>
+          ` : ''}
 
           <!-- Order Summary Box -->
           <div style="background: #fff8f0; border: 2px solid #c41e3a; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
@@ -202,7 +227,7 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
                   <p style="margin: 0; font-size: 20px; font-weight: bold; color: #333;">#${order.id.slice(0, 8).toUpperCase()}</p>
                 </td>
                 <td style="text-align: right; vertical-align: top;">
-                  <p style="margin: 0 0 5px 0; color: #666; font-size: 12px; text-transform: uppercase;">Total Paid</p>
+                  <p style="margin: 0 0 5px 0; color: #666; font-size: 12px; text-transform: uppercase;">${isPayNow ? 'Amount Due' : 'Total Paid'}</p>
                   <p style="margin: 0; font-size: 24px; font-weight: bold; color: #c41e3a;">$${order.total_amount.toFixed(2)}</p>
                 </td>
               </tr>
@@ -315,7 +340,7 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
           <img src="${LOGO_URL}" alt="BBQ Affair" style="max-width: 100px; height: auto; margin-bottom: 15px; opacity: 0.8;">
           <p style="margin: 0 0 10px 0; font-size: 13px;">Premium BBQ Catering in Singapore</p>
           <p style="margin: 0; font-size: 11px; color: #666;">
-            This is an automated confirmation email. Please do not reply directly.
+            Have questions? Simply reply to this email or contact us at lebbqaffair@gmail.com
           </p>
         </div>
       </div>
@@ -323,11 +348,16 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
     </html>
   `;
 
+  const subject = isPayNow
+    ? `📱 Order Received - Payment Pending #${order.id.slice(0, 8).toUpperCase()} - BBQ Affair`
+    : `🔥 Order Confirmed! #${order.id.slice(0, 8).toUpperCase()} - BBQ Affair`;
+
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
+      replyTo: NOTIFICATION_EMAIL,
       to: order.customer_email,
-      subject: `🔥 Order Confirmed! #${order.id.slice(0, 8).toUpperCase()} - BBQ Affair`,
+      subject: subject,
       html: emailHtml,
     });
     console.log("Order confirmation email sent to customer:", order.customer_email);
@@ -337,10 +367,15 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
 }
 
 // Send webhook notification
-async function sendWebhook(order: any, orderItems: any[]) {
+// paymentStatus: 'pending' | 'paid' | 'paynow'
+async function sendWebhook(order: any, orderItems: any[], paymentStatus: string) {
+  const eventName = paymentStatus === 'paid' ? 'order.paid'
+    : paymentStatus === 'paynow' ? 'order.paynow'
+    : 'order.created';
+
   try {
     const payload = {
-      event: "order.paid",
+      event: eventName,
       timestamp: new Date().toISOString(),
       order: {
         id: order.id,
@@ -452,7 +487,7 @@ Deno.serve(async (req) => {
             // Send "Payment Received" emails and webhook (fire and forget)
             sendAdminEmail(order, enrichedItems, 'paid');
             sendCustomerEmail(order, enrichedItems);
-            sendWebhook(order, enrichedItems);
+            sendWebhook(order, enrichedItems, 'paid');
           }
         }
 
@@ -522,7 +557,7 @@ Deno.serve(async (req) => {
       // Send PayNow emails and webhook
       sendAdminEmail(order, enrichedItems, 'paynow');
       sendCustomerEmail(order, enrichedItems);
-      sendWebhook(order, enrichedItems);
+      sendWebhook(order, enrichedItems, 'paynow');
 
       return new Response(
         JSON.stringify({ success: true, order_id }),
@@ -598,8 +633,9 @@ Deno.serve(async (req) => {
     }));
 
     if (order) {
-      // Send "Awaiting Payment" email to admin (Stripe checkout created)
+      // Send "Awaiting Payment" email and webhook to admin (Stripe checkout created)
       sendAdminEmail(order, enrichedItems, 'pending');
+      sendWebhook(order, enrichedItems, 'pending');
     }
 
     return new Response(
