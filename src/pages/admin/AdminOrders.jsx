@@ -157,11 +157,13 @@ export default function AdminOrders() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const primaryColor = [196, 30, 58]; // #c41e3a
     const grayColor = [100, 100, 100];
-    const headerBgColor = [51, 51, 51]; // #333333 - dark background to match logo
+    const headerBgColor = [23, 25, 24]; // #171918 - dark background to match logo
 
     // Load logo image from local public folder (avoids CORS issues)
     const logoUrl = '/images/logo.png';
     let logoData = null;
+    let logoWidth = 60;
+    let logoHeight = 30;
 
     try {
       const response = await fetch(logoUrl);
@@ -172,6 +174,28 @@ export default function AdminOrders() {
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(blob);
         });
+
+        // Get actual image dimensions to maintain aspect ratio
+        const img = new Image();
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.src = logoData;
+        });
+
+        // Calculate dimensions to fit within max width of 70mm while maintaining aspect ratio
+        const maxWidth = 70;
+        const maxHeight = 35;
+        const aspectRatio = img.width / img.height;
+
+        if (aspectRatio > maxWidth / maxHeight) {
+          // Width constrained
+          logoWidth = maxWidth;
+          logoHeight = maxWidth / aspectRatio;
+        } else {
+          // Height constrained
+          logoHeight = maxHeight;
+          logoWidth = maxHeight * aspectRatio;
+        }
       }
     } catch (err) {
       console.error('Failed to load logo:', err);
@@ -183,11 +207,10 @@ export default function AdminOrders() {
 
     // Add logo if loaded
     if (logoData) {
-      // Center the logo (logo is approximately 180px wide, scale proportionally)
-      const logoWidth = 60;
-      const logoHeight = 25;
+      // Center the logo with correct aspect ratio
       const logoX = (pageWidth - logoWidth) / 2;
-      doc.addImage(logoData, 'PNG', logoX, 8, logoWidth, logoHeight);
+      const logoY = (40 - logoHeight) / 2 + 2; // Vertically center in header area
+      doc.addImage(logoData, 'PNG', logoX, logoY, logoWidth, logoHeight);
     } else {
       // Fallback text if logo fails to load
       doc.setTextColor(255, 255, 255);
