@@ -3,15 +3,18 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Check, Loader, AlertCircle } from 'lucide-react';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
+
 function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [paymentVerified, setPaymentVerified] = useState(false);
 
   useEffect(() => {
-    async function fetchOrder() {
+    async function verifyAndFetchOrder() {
       if (!sessionId) {
         setError('No session ID found');
         setLoading(false);
@@ -19,29 +22,48 @@ function CheckoutSuccess() {
       }
 
       try {
-        // Fetch order by stripe session ID
-        const { data, error: fetchError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('stripe_session_id', sessionId)
-          .single();
+        // First, verify payment with Stripe via edge function
+        const verifyResponse = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'verify-session',
+            session_id: sessionId
+          })
+        });
 
-        if (fetchError) {
-          // Session might not be linked yet, try a few times
-          console.log('Order not found yet, webhook may still be processing...');
-          setError('Order confirmation is being processed. Please refresh in a moment.');
+        const verifyData = await verifyResponse.json();
+
+        if (verifyData.paid && verifyData.order_id) {
+          setPaymentVerified(true);
+
+          // Fetch the updated order
+          const { data, error: fetchError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', verifyData.order_id)
+            .single();
+
+          if (!fetchError && data) {
+            setOrder(data);
+          }
+        } else if (verifyData.error) {
+          console.error('Verification error:', verifyData.error);
+          setError('Payment verification failed. Please contact support.');
         } else {
-          setOrder(data);
+          setError('Payment not completed. Please try again.');
         }
       } catch (err) {
-        console.error('Error fetching order:', err);
-        setError('Failed to load order details');
+        console.error('Error verifying payment:', err);
+        setError('Failed to verify payment. Please contact support.');
       } finally {
         setLoading(false);
       }
     }
 
-    fetchOrder();
+    verifyAndFetchOrder();
   }, [sessionId]);
 
   if (loading) {

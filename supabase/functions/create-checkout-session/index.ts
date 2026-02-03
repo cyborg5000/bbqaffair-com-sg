@@ -18,7 +18,58 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    const { order_id, line_items, customer_email, success_url, cancel_url } = await req.json();
+    const body = await req.json();
+
+    // Handle verify-session request (for success page without webhook)
+    if (body.action === "verify-session") {
+      const { session_id } = body;
+
+      if (!session_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing session_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Retrieve the session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      if (session.payment_status === "paid") {
+        // Update order in database
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+        const orderId = session.metadata?.order_id;
+
+        if (orderId) {
+          await supabase
+            .from("orders")
+            .update({
+              payment_status: "paid",
+              status: "confirmed"
+            })
+            .eq("id", orderId);
+        }
+
+        return new Response(
+          JSON.stringify({
+            paid: true,
+            order_id: orderId,
+            amount: session.amount_total ? session.amount_total / 100 : 0
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ paid: false, status: session.payment_status }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Original create-checkout-session logic
+    const { order_id, line_items, customer_email, success_url, cancel_url } = body;
 
     if (!order_id || !line_items || !success_url || !cancel_url) {
       return new Response(
