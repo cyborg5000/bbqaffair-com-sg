@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Send, Loader2, Star } from 'lucide-react';
 import { uploadMediaToCloudinary, validateMediaFile } from '../lib/cloudinary';
 
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ObCy8oNRPTbs5fY4nz1hvg_sRVJIU3I';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
 
 function ReviewForm() {
@@ -138,13 +137,15 @@ function ReviewForm() {
         media: media || null
       };
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-review`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          apikey: SUPABASE_ANON_KEY
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          action: 'submit-review',
+          ...payload
+        })
       });
 
       if (!response.ok) {
