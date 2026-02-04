@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -7,6 +7,9 @@ function Navigation() {
   const { toggleCart, totalItems } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [contactMenuOpen, setContactMenuOpen] = useState(false);
+  const [mobileContactOpen, setMobileContactOpen] = useState(false);
+  const contactMenuRef = useRef(null);
 
   // Scroll detection for navbar styling
   useEffect(() => {
@@ -17,12 +20,35 @@ function Navigation() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contactMenuRef.current && !contactMenuRef.current.contains(event.target)) {
+        setContactMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+    setMobileContactOpen(false);
+  };
+
+  const toggleContactMenu = () => {
+    setContactMenuOpen((open) => !open);
+  };
+
+  const closeContactMenu = () => {
+    setContactMenuOpen(false);
+  };
+
+  const toggleMobileContactMenu = () => {
+    setMobileContactOpen((open) => !open);
   };
 
   return (
@@ -37,7 +63,34 @@ function Navigation() {
           <li><Link to="/">Home</Link></li>
           <li><Link to="/menu">Menu</Link></li>
           <li><Link to="/about">About</Link></li>
-          <li><Link to="/contact">Contact</Link></li>
+          <li
+            className={`nav-dropdown ${contactMenuOpen ? 'open' : ''}`}
+            ref={contactMenuRef}
+            onMouseEnter={() => setContactMenuOpen(true)}
+          >
+            <button
+              type="button"
+              className="nav-link-button"
+              onClick={toggleContactMenu}
+              aria-haspopup="true"
+              aria-expanded={contactMenuOpen}
+            >
+              Contact
+              <span className="nav-caret" aria-hidden="true">▾</span>
+            </button>
+            <ul className="dropdown-menu" role="menu">
+              <li role="none">
+                <Link to="/contact" role="menuitem" onClick={closeContactMenu}>
+                  Contact Us
+                </Link>
+              </li>
+              <li role="none">
+                <Link to="/review" role="menuitem" onClick={closeContactMenu}>
+                  Leave a Review
+                </Link>
+              </li>
+            </ul>
+          </li>
           <li>
             <button
               onClick={toggleCart}
@@ -101,10 +154,34 @@ function Navigation() {
                 About
               </Link>
             </li>
-            <li>
-              <Link to="/contact" onClick={closeMobileMenu}>
+            <li className={`mobile-dropdown ${mobileContactOpen ? 'open' : ''}`}>
+              <button
+                type="button"
+                className="mobile-dropdown-toggle"
+                onClick={toggleMobileContactMenu}
+                aria-expanded={mobileContactOpen}
+              >
                 Contact
-              </Link>
+                <span className="nav-caret" aria-hidden="true">▾</span>
+              </button>
+              <ul className="mobile-dropdown-menu">
+                <li>
+                  <Link
+                    to="/contact"
+                    onClick={closeMobileMenu}
+                  >
+                    Contact Us
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/review"
+                    onClick={closeMobileMenu}
+                  >
+                    Leave a Review
+                  </Link>
+                </li>
+              </ul>
             </li>
           </ul>
           <div className="mobile-menu-cta">
