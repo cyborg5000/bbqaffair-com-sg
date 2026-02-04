@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Send, Loader2, Star } from 'lucide-react';
 import { uploadMediaToCloudinary, validateMediaFile } from '../lib/cloudinary';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
+import { supabase } from '../lib/supabase';
 
 function ReviewForm() {
   const [formData, setFormData] = useState({
@@ -137,15 +136,12 @@ function ReviewForm() {
         media: media || null
       };
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const { error: invokeError } = await supabase.functions.invoke('submit-review', {
+        body: payload
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Submission failed');
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Submission failed');
       }
 
       setFormData({
