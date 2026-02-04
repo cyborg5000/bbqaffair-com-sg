@@ -255,7 +255,7 @@ export default function ProductDetail() {
           <div className="info-card">
             <span>🚚</span>
             <h4>Free Delivery</h4>
-            <p>For orders above $200</p>
+            <p>For orders above $500</p>
           </div>
           <div className="info-card">
             <span>⭐</span>
