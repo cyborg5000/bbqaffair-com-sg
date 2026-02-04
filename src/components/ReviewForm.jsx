@@ -3,6 +3,8 @@ import { Upload, X, Send, Loader2, Star } from 'lucide-react';
 import { uploadMediaToCloudinary, validateMediaFile } from '../lib/cloudinary';
 import { supabase } from '../lib/supabase';
 
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ObCy8oNRPTbs5fY4nz1hvg_sRVJIU3I';
+
 function ReviewForm() {
   const [formData, setFormData] = useState({
     name: '',
@@ -137,7 +139,10 @@ function ReviewForm() {
       };
 
       const { error: invokeError } = await supabase.functions.invoke('submit-review', {
-        body: payload
+        body: payload,
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
       });
 
       if (invokeError) {
