@@ -12,12 +12,31 @@ const NOTIFICATION_EMAIL = "lebbqaffair@gmail.com";
 const FROM_EMAIL = "BBQ Affair <bbqaffair@digital9labs.com>";
 const LOGO_URL = "https://bbqaffair.com.sg/images/logo.png";
 const SUPABASE_STORAGE_URL = "https://dndpcnyiqrtjfefpnqho.supabase.co/storage/v1/object/public/bbqaffair-images";
+const ORDER_NUMBER_PREFIX = "bbqaffair";
 
 // Get product image URL
 function getProductImageUrl(imagePath: string | null) {
   if (!imagePath) return null;
   if (imagePath.startsWith('http')) return imagePath;
   return `${SUPABASE_STORAGE_URL}/${imagePath}`;
+}
+
+function formatOrderNumber(order: any) {
+  const value = order?.order_number;
+  if (value !== undefined && value !== null && value !== '') {
+    if (typeof value === 'number') {
+      return `${ORDER_NUMBER_PREFIX}${value}`;
+    }
+    const raw = String(value);
+    if (raw.toLowerCase().startsWith(ORDER_NUMBER_PREFIX)) {
+      return raw.toLowerCase();
+    }
+    if (/^\d+$/.test(raw)) {
+      return `${ORDER_NUMBER_PREFIX}${raw}`;
+    }
+    return raw;
+  }
+  return order?.id ? order.id.slice(0, 8).toUpperCase() : '';
 }
 
 // Build items HTML helper with images
@@ -59,6 +78,7 @@ async function sendAdminEmail(order: any, orderItems: any[], paymentStatus: stri
   const isPaid = paymentStatus === 'paid';
   const isPayNow = paymentStatus === 'paynow';
   const isPending = paymentStatus === 'pending';
+  const displayOrderNumber = formatOrderNumber(order);
 
   const statusBadge = isPaid
     ? '<span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px;">💳 PAID</span>'
@@ -79,7 +99,7 @@ async function sendAdminEmail(order: any, orderItems: any[], paymentStatus: stri
       <div style="padding: 20px;">
         <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0;">Order #${order.id.slice(0, 8).toUpperCase()}</h3>
+            <h3 style="margin: 0;">Order #${displayOrderNumber}</h3>
             ${statusBadge}
           </div>
           <p style="margin: 5px 0;"><strong>Total:</strong> <span style="font-size: 1.3em; color: #c41e3a;">$${order.total_amount.toFixed(2)}</span></p>
@@ -148,7 +168,7 @@ async function sendAdminEmail(order: any, orderItems: any[], paymentStatus: stri
     await resend.emails.send({
       from: FROM_EMAIL,
       to: NOTIFICATION_EMAIL,
-      subject: `${subjectPrefix} - #${order.id.slice(0, 8).toUpperCase()} - $${order.total_amount.toFixed(2)}`,
+      subject: `${subjectPrefix} - #${displayOrderNumber} - $${order.total_amount.toFixed(2)}`,
       html: emailHtml,
     });
     console.log(`Admin email sent (${paymentStatus})`);
@@ -169,6 +189,7 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
   const itemsHtml = buildItemsHtml(orderItems, true); // Include images
   const isPayNow = order.payment_method === 'paynow';
   const PAYNOW_QR_URL = "https://bbqaffair.com.sg/images/QRCode.jpeg";
+  const displayOrderNumber = formatOrderNumber(order);
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -212,7 +233,7 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
             <h3 style="margin: 0 0 10px 0; color: #856404;">⚠️ Important Notice</h3>
             <ul style="margin: 0; padding-left: 20px; color: #856404;">
               <li style="margin-bottom: 8px;"><strong>Your order will only be processed once we confirm your payment.</strong></li>
-              <li style="margin-bottom: 8px;">Please include your <strong>Order Number #${order.id.slice(0, 8).toUpperCase()}</strong> in the payment reference</li>
+              <li style="margin-bottom: 8px;">Please include your <strong>Order Number #${displayOrderNumber}</strong> in the payment reference</li>
               <li>We will contact you within 24 hours to confirm receipt of payment</li>
             </ul>
           </div>
@@ -224,7 +245,7 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
               <tr>
                 <td style="vertical-align: top;">
                   <p style="margin: 0 0 5px 0; color: #666; font-size: 12px; text-transform: uppercase;">Order Number</p>
-                  <p style="margin: 0; font-size: 20px; font-weight: bold; color: #333;">#${order.id.slice(0, 8).toUpperCase()}</p>
+                  <p style="margin: 0; font-size: 20px; font-weight: bold; color: #333;">#${displayOrderNumber}</p>
                 </td>
                 <td style="text-align: right; vertical-align: top;">
                   <p style="margin: 0 0 5px 0; color: #666; font-size: 12px; text-transform: uppercase;">${isPayNow ? 'Amount Due' : 'Total Paid'}</p>
@@ -349,8 +370,8 @@ async function sendCustomerEmail(order: any, orderItems: any[]) {
   `;
 
   const subject = isPayNow
-    ? `📱 Order Received - Payment Pending #${order.id.slice(0, 8).toUpperCase()} - BBQ Affair`
-    : `🔥 Order Confirmed! #${order.id.slice(0, 8).toUpperCase()} - BBQ Affair`;
+    ? `📱 Order Received - Payment Pending #${displayOrderNumber} - BBQ Affair`
+    : `🔥 Order Confirmed! #${displayOrderNumber} - BBQ Affair`;
 
   try {
     await resend.emails.send({

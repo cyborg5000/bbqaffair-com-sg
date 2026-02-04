@@ -24,9 +24,13 @@ CREATE TABLE IF NOT EXISTS product_items (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+-- Create order number sequence
+CREATE SEQUENCE IF NOT EXISTS orders_order_number_seq START 1001;
+
 -- Create orders table
 CREATE TABLE IF NOT EXISTS orders (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_number bigint UNIQUE DEFAULT nextval('orders_order_number_seq'),
   customer_name text NOT NULL,
   customer_email text NOT NULL,
   customer_phone text NOT NULL,

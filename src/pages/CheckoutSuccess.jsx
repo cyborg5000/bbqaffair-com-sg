@@ -4,6 +4,26 @@ import { supabase } from '../lib/supabase';
 import { Check, Loader, AlertCircle } from 'lucide-react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
+const ORDER_NUMBER_PREFIX = 'bbqaffair';
+
+function formatOrderNumber(order) {
+  if (!order) return '';
+  const value = order.order_number;
+  if (value !== undefined && value !== null && value !== '') {
+    if (typeof value === 'number') {
+      return `${ORDER_NUMBER_PREFIX}${value}`;
+    }
+    const raw = String(value);
+    if (raw.toLowerCase().startsWith(ORDER_NUMBER_PREFIX)) {
+      return raw.toLowerCase();
+    }
+    if (/^\d+$/.test(raw)) {
+      return `${ORDER_NUMBER_PREFIX}${raw}`;
+    }
+    return raw;
+  }
+  return `#${order.id.slice(0, 8).toUpperCase()}`;
+}
 
 function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
@@ -130,7 +150,7 @@ function CheckoutSuccess() {
           </h1>
           {order && (
             <p style={{ color: '#666', fontSize: '0.9rem' }}>
-              Order ID: <strong>{order.id.slice(0, 8).toUpperCase()}</strong>
+              Order Number: <strong>{formatOrderNumber(order)}</strong>
             </p>
           )}
         </div>

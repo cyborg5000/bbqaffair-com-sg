@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+const ORDER_NUMBER_PREFIX = 'bbqaffair';
+const ORDER_NUMBER_START = 1001;
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -151,6 +154,41 @@ export default function AdminOrders() {
     return statusColors[status] || 'status-pending';
   }
 
+  const orderNumberMap = useMemo(() => {
+    if (!orders.length) return new Map();
+    const sorted = [...orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const map = new Map();
+    let counter = ORDER_NUMBER_START;
+    sorted.forEach(order => {
+      map.set(order.id, counter);
+      counter += 1;
+    });
+    return map;
+  }, [orders]);
+
+  function formatOrderNumber(order) {
+    if (!order) return '';
+    const value = order.order_number;
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value === 'number') {
+        return `${ORDER_NUMBER_PREFIX}${value}`;
+      }
+      const raw = String(value);
+      if (raw.toLowerCase().startsWith(ORDER_NUMBER_PREFIX)) {
+        return raw.toLowerCase();
+      }
+      if (/^\d+$/.test(raw)) {
+        return `${ORDER_NUMBER_PREFIX}${raw}`;
+      }
+      return raw;
+    }
+    const fallback = orderNumberMap.get(order.id);
+    if (fallback) {
+      return `${ORDER_NUMBER_PREFIX}${fallback}`;
+    }
+    return order.id ? order.id.slice(0, 8).toUpperCase() : '';
+  }
+
   // Generate PDF Order Confirmation
   async function downloadOrderPDF(order) {
     const doc = new jsPDF();
@@ -239,7 +277,8 @@ export default function AdminOrders() {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primaryColor);
-    doc.text(`Order #${order.id.slice(0, 8).toUpperCase()}`, 20, 80);
+    const displayOrderNumber = formatOrderNumber(order);
+    doc.text(`Order #${displayOrderNumber}`, 20, 80);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...grayColor);
@@ -426,7 +465,7 @@ export default function AdminOrders() {
     }
 
     // Save the PDF
-    doc.save(`BBQ-Affair-Order-${order.id.slice(0, 8).toUpperCase()}.pdf`);
+    doc.save(`BBQ-Affair-Order-${displayOrderNumber}.pdf`);
   }
 
   const isAllSelected = orders.length > 0 && selectedIds.length === orders.length;
@@ -482,7 +521,7 @@ export default function AdminOrders() {
                       onChange={() => handleSelectOne(order.id)}
                     />
                   </td>
-                  <td>#{order.id.slice(0, 8)}</td>
+                  <td>{formatOrderNumber(order)}</td>
                   <td>
                     <div>{order.customer_name}</div>
                     <div className="customer-phone">{order.customer_phone}</div>
@@ -527,7 +566,7 @@ export default function AdminOrders() {
         {selectedOrder && (
           <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
             <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
-              <h2>Order Details #{selectedOrder.id.slice(0, 8)}</h2>
+              <h2>Order Details {formatOrderNumber(selectedOrder)}</h2>
               
               <div className="order-details">
                 <div className="detail-section">

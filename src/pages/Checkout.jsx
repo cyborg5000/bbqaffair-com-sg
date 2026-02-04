@@ -6,6 +6,11 @@ import { CreditCard, QrCode, ArrowLeft, Check, ShoppingCart, Loader } from 'luci
 // Supabase Edge Function URL for Stripe checkout
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
 
+const DELIVERY_THRESHOLD = 500;
+const DELIVERY_FEE = 40;
+const ORDER_NUMBER_PREFIX = 'bbqaffair';
+const ORDER_NUMBER_START = 1001;
+
 function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('stripe');
@@ -23,6 +28,34 @@ function Checkout() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [displayOrderNumber, setDisplayOrderNumber] = useState(null);
+
+  const deliveryFee = totalPrice >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
+  const orderTotal = totalPrice + deliveryFee;
+
+  const formatOrderNumber = (order, fallbackNumber) => {
+    if (!order) return '';
+    const value = order.order_number;
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value === 'number') {
+        return `${ORDER_NUMBER_PREFIX}${value}`;
+      }
+      const raw = String(value);
+      if (raw.toLowerCase().startsWith(ORDER_NUMBER_PREFIX)) {
+        return raw.toLowerCase();
+      }
+      if (/^\d+$/.test(raw)) {
+        return `${ORDER_NUMBER_PREFIX}${raw}`;
+      }
+      return raw;
+    }
+    if (fallbackNumber) {
+      return `${ORDER_NUMBER_PREFIX}${fallbackNumber}`;
+    }
+    return `#${order.id.slice(0, 8).toUpperCase()}`;
+  };
 
   // Wait for cart to load from localStorage
   useEffect(() => {
@@ -42,6 +75,12 @@ function Checkout() {
     setIsSubmitting(true);
     setError(null);
 
+    if (!termsAccepted) {
+      setError('Please accept the Terms & Conditions to place order.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Create order in database
       const orderData = {
@@ -52,7 +91,7 @@ function Checkout() {
         event_time: formData.eventTime,
         event_address: formData.eventAddress,
         notes: formData.notes,
-        total_amount: totalPrice,
+        total_amount: orderTotal,
         payment_method: paymentMethod,
         status: 'pending',
         payment_status: 'pending'
@@ -62,6 +101,21 @@ function Checkout() {
 
       if (!order) {
         throw new Error('Failed to create order');
+      }
+
+      if (order.order_number) {
+        setDisplayOrderNumber(order.order_number);
+      } else {
+        try {
+          const { count, error: countError } = await supabase
+            .from('orders')
+            .select('id', { count: 'exact', head: true });
+          if (!countError && typeof count === 'number') {
+            setDisplayOrderNumber(ORDER_NUMBER_START - 1 + count);
+          }
+        } catch (countErr) {
+          console.warn('Failed to compute fallback order number:', countErr);
+        }
       }
 
       // Create order items
@@ -132,6 +186,14 @@ function Checkout() {
             });
           }
         });
+
+        if (deliveryFee > 0) {
+          lineItems.push({
+            name: 'Delivery Fee',
+            price: deliveryFee,
+            quantity: 1
+          });
+        }
 
         // Call Supabase Edge Function to create Stripe Checkout Session
         const response = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`, {
@@ -227,7 +289,7 @@ function Checkout() {
               Order Placed Successfully!
             </h1>
             <p style={{ color: '#666', fontSize: '0.9rem' }}>
-              Order ID: <strong>{createdOrder.id.slice(0, 8).toUpperCase()}</strong>
+              Order Number: <strong>{formatOrderNumber(createdOrder, displayOrderNumber)}</strong>
             </p>
           </div>
 
@@ -484,14 +546,41 @@ function Checkout() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 paddingTop: '1.5rem',
+                fontSize: '1rem',
+                fontWeight: '600'
+              }}>
+                <span>Subtotal:</span>
+                <span style={{ color: 'var(--primary-color)' }}>
+                  ${totalPrice.toFixed(2)}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginTop: '0.5rem',
+                fontSize: '0.95rem',
+                color: '#666'
+              }}>
+                <span>Delivery Fee:</span>
+                <span style={{ color: deliveryFee === 0 ? 'var(--success-green)' : '#666' }}>
+                  {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginTop: '1rem',
                 fontSize: '1.25rem',
                 fontWeight: 'bold'
               }}>
                 <span>Total:</span>
                 <span style={{ color: 'var(--primary-color)' }}>
-                  ${totalPrice.toFixed(2)}
+                  ${orderTotal.toFixed(2)}
                 </span>
               </div>
+              <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#777' }}>
+                Free delivery for orders $500 and above.
+              </p>
             </div>
 
             {/* Payment Methods */}
@@ -560,6 +649,9 @@ function Checkout() {
                 </label>
               </div>
 
+              <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#777' }}>
+                A $40 delivery fee applies to orders below $500 for all payment methods.
+              </p>
             </div>
           </div>
 
@@ -669,11 +761,48 @@ function Checkout() {
                   </div>
                 )}
 
+                <div style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                  <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', fontSize: '0.95rem', color: '#444' }}>
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => {
+                        setTermsAccepted(e.target.checked);
+                        if (e.target.checked) setError(null);
+                      }}
+                      style={{ marginTop: '0.2rem' }}
+                    />
+                    <span>
+                      I agree to the{' '}
+                      <button
+                        type="button"
+                        onClick={() => setIsTermsOpen(true)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          color: 'var(--primary-color)',
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        Terms &amp; Conditions
+                      </button>
+                    </span>
+                  </label>
+                </div>
+
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ width: '100%', marginTop: '1rem' }}
-                  disabled={isSubmitting}
+                  style={{
+                    width: '100%',
+                    marginTop: '1rem',
+                    opacity: isSubmitting || !termsAccepted ? 0.6 : 1,
+                    cursor: isSubmitting || !termsAccepted ? 'not-allowed' : 'pointer'
+                  }}
+                  disabled={isSubmitting || !termsAccepted}
                 >
                   {isSubmitting ? (
                     <>
@@ -689,6 +818,136 @@ function Checkout() {
           </div>
         </div>
       </div>
+
+      {isTermsOpen && (
+        <div
+          onClick={() => setIsTermsOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+            padding: '1.5rem'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <h3 style={{ margin: 0, color: 'var(--secondary-color)' }}>BBQ Affair - Terms &amp; Conditions</h3>
+              <button
+                type="button"
+                onClick={() => setIsTermsOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+                aria-label="Close terms"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
+              <ol style={{ paddingLeft: '1.25rem', margin: 0, lineHeight: 1.7, color: '#444' }}>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Delivery &amp; Transportation</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>A delivery fee of $40 applies to orders below $500.</li>
+                    <li>Additional transportation charges apply for events that end after 10:30 PM.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Reservations &amp; Bookings</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>Reservations must be made at least 7 days in advance.</li>
+                    <li>A $40 late booking fee applies to last-minute bookings.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Cancellations</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>Last-minute cancellations are not accepted.</li>
+                    <li>Cancellations will incur a 50% charge of the total amount.</li>
+                    <li>If our chefs are already en route to your venue, additional charges will apply.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Special Venues</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>Inaccessible or special venues will incur an additional $40 charge.</li>
+                    <li>
+                      Examples include: NSRCC, East Coast Park, Labrador Park, Changi Fairy Point, Sentosa, 3 Jalan Hajijah
+                      (Landbay) ($20) (staircase to BBQ pit), Tuas, Belmont Road, 42 Belmont Road (3 flights of stairs,
+                      add $60 if the food is a lot), KI Residences, 68 Hua Guan Ave, Pavilion Green, Sunny Parc, Hilltops,
+                      Sembwang Country Club.
+                    </li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Payment Policy</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>Upon invoice issuance, payment should be made to UEN: 53476778L.</li>
+                    <li>Full payment must be made at least 7 days before the event. Failure to do so may result in cancellation of your booking without prior notice.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Wet Weather Policy</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>In case of rain, we will wait for the rain to stop and resume the BBQ.</li>
+                    <li>Alternatively, we may cook indoors (e.g., at your home) using pots, ovens, etc., while preserving the BBQ flavor.</li>
+                    <li>To postpone your event due to weather, please inform us at least 5 hours before the scheduled start time.</li>
+                    <li>Please assign someone to hold an umbrella for the chef during rain (note: chefs may get wet and smell of smoke).</li>
+                    <li>We can provide a portable pit, subject to venue management approval. Please prepare additional A3 trays. If this is not permitted and an incident occurs, BBQ Affair will not be held responsible.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Chef Rules</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>Each chef can handle up to 30 pax.</li>
+                    <li>For groups exceeding 30 pax, we recommend having 2 chefs and 2 pits.</li>
+                    <li>If only one chef is available, we will try to cook as quickly as possible, but we cannot guarantee all food will be completed on time.</li>
+                    <li>Alternatively, you may hire a chef for a 4-hour timeslot.</li>
+                    <li>If you request a specific chef to serve you, an additional $40 charge applies.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Photo</strong>
+                  <p style={{ marginTop: '0.5rem' }}>
+                    When the team finishes the job, we will take a photo with you to celebrate a successful event with BBQ Affair.
+                  </p>
+                </li>
+              </ol>
+
+              <p style={{ marginTop: '1rem', color: '#555' }}>
+                Thank you for your continued support of BBQ Affair. For enquiries, please contact Richard at 8891 1844.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     question: "Do you charge for delivery?",
-    answer: "Delivery is included for most locations in Singapore. For venues located in remote areas or with difficult access, a small delivery fee may apply. We'll inform you of any additional charges when you request a quote."
+    answer: "Free delivery applies to orders of $500 and above. A $40 delivery fee applies to orders below $500. Additional transportation charges may apply for venues with difficult access or events that end after 10:30 PM."
   },
   {
     question: "How long does the BBQ service last?",

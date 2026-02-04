@@ -10,6 +10,8 @@ export default function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -27,7 +29,14 @@ export default function AdminProducts() {
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (!editingProduct || categories.length === 0) return;
+    const exists = categories.some(cat => cat.name === editingProduct.category);
+    setUseCustomCategory(!exists);
+  }, [categories, editingProduct]);
 
   async function fetchProducts() {
     try {
@@ -63,8 +72,26 @@ export default function AdminProducts() {
     }
   }
 
+  async function fetchCategories() {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  }
+
   function handleEdit(product) {
     setEditingProduct(product);
+    const categoryExists = categories.some(cat => cat.name === product.category);
+    setUseCustomCategory(!categoryExists);
     // Sort options by display_order
     const sortedOptions = (product.product_options || [])
       .sort((a, b) => a.display_order - b.display_order)
@@ -106,6 +133,7 @@ export default function AdminProducts() {
 
   function handleNew() {
     setEditingProduct(null);
+    setUseCustomCategory(false);
     setFormData({
       name: '',
       description: '',
@@ -477,12 +505,50 @@ export default function AdminProducts() {
 
                   <div className="form-group">
                     <label>Category</label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      placeholder="e.g., packages, addons"
-                    />
+                    {categories.length > 0 ? (
+                      <>
+                        <select
+                          value={useCustomCategory ? '__custom__' : formData.category}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '__custom__') {
+                              setUseCustomCategory(true);
+                              setFormData({ ...formData, category: '' });
+                            } else {
+                              setUseCustomCategory(false);
+                              setFormData({ ...formData, category: value });
+                            }
+                          }}
+                          required={!useCustomCategory}
+                        >
+                          <option value="">Select a category</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </option>
+                          ))}
+                          <option value="__custom__">Other (manual)</option>
+                        </select>
+                        {useCustomCategory && (
+                          <input
+                            type="text"
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            placeholder="Enter category"
+                            style={{ marginTop: '0.5rem' }}
+                            required
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        value={formData.category}
+                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                        placeholder="e.g., BBQ Package"
+                        required
+                      />
+                    )}
                   </div>
                 </div>
 

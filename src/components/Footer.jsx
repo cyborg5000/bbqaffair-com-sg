@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, MapPin, Phone, Mail } from 'lucide-react';
+import { Facebook, Instagram, MapPin, Phone, Mail, Music2 } from 'lucide-react';
 
 function Footer() {
   const videoRef = useRef(null);
@@ -39,11 +39,32 @@ function Footer() {
             Providing Chef For Hire & Sales of food in Singapore.
           </p>
           <div className="footer-social">
-            <a href="#" className="social-link" aria-label="Facebook">
+            <a
+              href="https://www.facebook.com/bbqaffair"
+              className="social-link"
+              aria-label="Facebook"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Facebook size={20} />
             </a>
-            <a href="#" className="social-link" aria-label="Instagram">
+            <a
+              href="https://www.instagram.com/bbqaffairyos/"
+              className="social-link"
+              aria-label="Instagram"
+              target="_blank"
+              rel="noreferrer"
+            >
               <Instagram size={20} />
+            </a>
+            <a
+              href="https://www.tiktok.com/@bbqaffair"
+              className="social-link"
+              aria-label="TikTok"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Music2 size={20} />
             </a>
           </div>
         </div>

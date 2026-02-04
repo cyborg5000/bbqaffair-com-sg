@@ -45,8 +45,11 @@ create table product_items (
 Customer orders
 
 ```sql
+create sequence orders_order_number_seq start 1001;
+
 create table orders (
   id uuid default gen_random_uuid() primary key,
+  order_number bigint unique default nextval('orders_order_number_seq'),
   customer_name text not null,
   customer_email text not null,
   customer_phone text not null,

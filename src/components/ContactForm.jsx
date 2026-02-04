@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, Flame } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react';
 
 function ContactForm() {
   const [formData, setFormData] = useState({
@@ -72,17 +72,7 @@ function ContactForm() {
             </div>
             <div className="contact-item-content">
               <strong>Hours</strong>
-              <p>Mon-Sun: 9AM - 9PM</p>
-            </div>
-          </div>
-
-          <div className="special-offer-card">
-            <div className="special-offer-icon">
-              <Flame size={24} />
-            </div>
-            <div className="special-offer-content">
-              <h4>Special Offer</h4>
-              <p>Book 2 weeks in advance and get <strong>10% off</strong> your total bill!</p>
+              <p>Mon-Sun: 24 Hours</p>
             </div>
           </div>
         </div>
