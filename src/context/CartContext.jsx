@@ -75,12 +75,19 @@ export function CartProvider({ children }) {
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   
+  const parsePrice = (value) => {
+    if (typeof value === 'number') return value;
+    const parsed = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   const totalPrice = cartItems.reduce((sum, item) => {
     // Handle both number and string prices (e.g., "$25.00" or 25)
-    const price = typeof item.price === 'number'
-      ? item.price
-      : parseFloat(String(item.price).replace(/[^0-9.]/g, ''));
-    return sum + (price * item.quantity);
+    const basePrice = parsePrice(item.price);
+    const addonsTotal = (item.addons || []).reduce((addonSum, addon) => {
+      return addonSum + parsePrice(addon.price);
+    }, 0);
+    return sum + ((basePrice + addonsTotal) * item.quantity);
   }, 0);
 
   const toggleCart = useCallback(() => {

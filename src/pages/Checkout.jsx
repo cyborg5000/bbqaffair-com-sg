@@ -8,6 +8,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjf
 
 const DELIVERY_THRESHOLD = 500;
 const DELIVERY_FEE = 40;
+const CARD_FEE_RATE = 0.034;
+const CARD_FEE_FIXED = 0.5;
 const ORDER_NUMBER_PREFIX = 'bbqaffair';
 const ORDER_NUMBER_START = 1001;
 
@@ -33,7 +35,12 @@ function Checkout() {
   const [displayOrderNumber, setDisplayOrderNumber] = useState(null);
 
   const deliveryFee = totalPrice >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const orderTotal = totalPrice + deliveryFee;
+  const baseTotal = totalPrice + deliveryFee;
+  const cardFeeRaw = paymentMethod === 'stripe'
+    ? (baseTotal * CARD_FEE_RATE + CARD_FEE_FIXED)
+    : 0;
+  const cardFee = Math.round(cardFeeRaw * 100) / 100;
+  const orderTotal = Math.round((baseTotal + cardFee) * 100) / 100;
 
   const formatOrderNumber = (order, fallbackNumber) => {
     if (!order) return '';
@@ -191,6 +198,13 @@ function Checkout() {
           lineItems.push({
             name: 'Delivery Fee',
             price: deliveryFee,
+            quantity: 1
+          });
+        }
+        if (cardFee > 0) {
+          lineItems.push({
+            name: 'Card Processing Fee (3.4% + $0.50)',
+            price: cardFee,
             quantity: 1
           });
         }
@@ -566,6 +580,20 @@ function Checkout() {
                   {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
                 </span>
               </div>
+              {paymentMethod === 'stripe' && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '0.5rem',
+                  fontSize: '0.95rem',
+                  color: '#666'
+                }}>
+                  <span>Card Fee (3.4% + $0.50):</span>
+                  <span style={{ color: '#666' }}>
+                    ${cardFee.toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -650,7 +678,7 @@ function Checkout() {
               </div>
 
               <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#777' }}>
-                A $40 delivery fee applies to orders below $500 for all payment methods.
+                A $40 delivery fee applies to orders below $500 for all payment methods. Card payments incur a 3.4% + $0.50 fee.
               </p>
             </div>
           </div>
@@ -873,44 +901,11 @@ function Checkout() {
             <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
               <ol style={{ paddingLeft: '1.25rem', margin: 0, lineHeight: 1.7, color: '#444' }}>
                 <li style={{ marginBottom: '1rem' }}>
-                  <strong>Delivery &amp; Transportation</strong>
-                  <ul style={{ marginTop: '0.5rem' }}>
-                    <li>A delivery fee of $40 applies to orders below $500.</li>
-                    <li>Additional transportation charges apply for events that end after 10:30 PM.</li>
-                  </ul>
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong>Reservations &amp; Bookings</strong>
-                  <ul style={{ marginTop: '0.5rem' }}>
-                    <li>Reservations must be made at least 7 days in advance.</li>
-                    <li>A $40 late booking fee applies to last-minute bookings.</li>
-                  </ul>
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
                   <strong>Cancellations</strong>
                   <ul style={{ marginTop: '0.5rem' }}>
                     <li>Last-minute cancellations are not accepted.</li>
                     <li>Cancellations will incur a 50% charge of the total amount.</li>
                     <li>If our chefs are already en route to your venue, additional charges will apply.</li>
-                  </ul>
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong>Special Venues</strong>
-                  <ul style={{ marginTop: '0.5rem' }}>
-                    <li>Inaccessible or special venues will incur an additional $40 charge.</li>
-                    <li>
-                      Examples include: NSRCC, East Coast Park, Labrador Park, Changi Fairy Point, Sentosa, 3 Jalan Hajijah
-                      (Landbay) ($20) (staircase to BBQ pit), Tuas, Belmont Road, 42 Belmont Road (3 flights of stairs,
-                      add $60 if the food is a lot), KI Residences, 68 Hua Guan Ave, Pavilion Green, Sunny Parc, Hilltops,
-                      Sembwang Country Club.
-                    </li>
-                  </ul>
-                </li>
-                <li style={{ marginBottom: '1rem' }}>
-                  <strong>Payment Policy</strong>
-                  <ul style={{ marginTop: '0.5rem' }}>
-                    <li>Upon invoice issuance, payment should be made to UEN: 53476778L.</li>
-                    <li>Full payment must be made at least 7 days before the event. Failure to do so may result in cancellation of your booking without prior notice.</li>
                   </ul>
                 </li>
                 <li style={{ marginBottom: '1rem' }}>
@@ -931,6 +926,48 @@ function Checkout() {
                     <li>If only one chef is available, we will try to cook as quickly as possible, but we cannot guarantee all food will be completed on time.</li>
                     <li>Alternatively, you may hire a chef for a 4-hour timeslot.</li>
                     <li>If you request a specific chef to serve you, an additional $40 charge applies.</li>
+                  </ul>
+                </li>
+                <li style={{ marginBottom: '1rem' }}>
+                  <strong>Items to Prepare for the Chef</strong>
+                  <ul style={{ marginTop: '0.5rem' }}>
+                    <li>
+                      <strong>Charcoal</strong>
+                      <ul style={{ marginTop: '0.5rem' }}>
+                        <li>Mangrove charcoal</li>
+                        <li>Kachi mangrove charcoal</li>
+                      </ul>
+                    </li>
+                    <li>Fire starter</li>
+                    <li>Wire mesh</li>
+                    <li>Butter</li>
+                    <li>Butter brush</li>
+                    <li>Knife</li>
+                    <li>Tongs</li>
+                    <li>Tray</li>
+                    <li>
+                      <strong>GAS GRILL</strong>
+                      <ul style={{ marginTop: '0.5rem' }}>
+                        <li>Wire mesh</li>
+                        <li>Tongs</li>
+                        <li>Butter</li>
+                        <li>Butter brush</li>
+                        <li>Tray</li>
+                        <li>Knife</li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>TEPPANYAKI GRILL</strong>
+                      <ul style={{ marginTop: '0.5rem' }}>
+                        <li>Tongs</li>
+                        <li>Tray</li>
+                        <li>Butter</li>
+                        <li>Small bottle oil</li>
+                        <li>Scrapper</li>
+                        <li>Brush</li>
+                        <li>Knife</li>
+                      </ul>
+                    </li>
                   </ul>
                 </li>
                 <li style={{ marginBottom: '1rem' }}>
