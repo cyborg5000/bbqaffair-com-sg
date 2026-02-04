@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Send, Loader2, Star } from 'lucide-react';
 import { uploadMediaToCloudinary, validateMediaFile } from '../lib/cloudinary';
-import { supabase } from '../lib/supabase';
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ObCy8oNRPTbs5fY4nz1hvg_sRVJIU3I';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjfefpnqho.supabase.co';
 
 function ReviewForm() {
   const [formData, setFormData] = useState({
@@ -49,7 +49,7 @@ function ReviewForm() {
 
     const result = await uploadMediaToCloudinary(file, (percent) => {
       setProgress(percent);
-    });
+    }, { folder: 'bbqaffair/reviews' });
 
     setUploading(false);
 
@@ -138,15 +138,19 @@ function ReviewForm() {
         media: media || null
       };
 
-      const { error: invokeError } = await supabase.functions.invoke('submit-review', {
-        body: payload,
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-review`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-        }
+        },
+        body: JSON.stringify(payload)
       });
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Submission failed');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Submission failed');
       }
 
       setFormData({

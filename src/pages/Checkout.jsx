@@ -8,10 +8,90 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dndpcnyiqrtjf
 
 const DELIVERY_THRESHOLD = 500;
 const DELIVERY_FEE = 40;
+const SPECIAL_VENUE_BASE_FEE = 40;
+const SPECIAL_VENUE_REDUCED_FEE = 20;
+const BELMONT_BASE_FEE = 40;
+const BELMONT_LARGE_ORDER_FEE = 60;
+const BELMONT_LARGE_ORDER_THRESHOLD = 1000;
 const CARD_FEE_RATE = 0.034;
 const CARD_FEE_FIXED = 0.5;
 const ORDER_NUMBER_PREFIX = 'bbqaffair';
 const ORDER_NUMBER_START = 1001;
+
+const SPECIAL_VENUE_RULES = [
+  { name: 'NSRCC Changi', fee: SPECIAL_VENUE_BASE_FEE, codes: ['499739'] },
+  { name: 'NSRCC Kranji', fee: SPECIAL_VENUE_BASE_FEE, codes: ['718828'] },
+  { name: 'Sembawang Country Club', fee: SPECIAL_VENUE_BASE_FEE, codes: ['758352'] },
+  { name: 'East Coast Park', fee: SPECIAL_VENUE_BASE_FEE, ranges: [[449874, 449895]] },
+  { name: 'Labrador Park', fee: SPECIAL_VENUE_BASE_FEE, codes: ['119187', '119190'] },
+  { name: 'Changi Fairy Point (CSC)', fee: SPECIAL_VENUE_BASE_FEE, codes: ['509085', '509088', '509709'] },
+  { name: 'Sentosa', fee: SPECIAL_VENUE_BASE_FEE, prefixes: ['098', '099'] },
+  { name: 'Tuas', fee: SPECIAL_VENUE_BASE_FEE, prefixes: ['636', '637', '639'] },
+  { name: 'KI Residences', fee: SPECIAL_VENUE_BASE_FEE, codes: ['599968', '599973', '599977', '599981'] },
+  { name: '68 Hua Guan Avenue', fee: SPECIAL_VENUE_BASE_FEE, codes: ['589164'] },
+  { name: 'Pavilion Green', fee: SPECIAL_VENUE_BASE_FEE, ranges: [[658287, 658335]] },
+  { name: 'Sunny Parc', fee: SPECIAL_VENUE_BASE_FEE, codes: ['425767'] },
+  { name: 'Hilltops', fee: SPECIAL_VENUE_BASE_FEE, codes: ['229808', '229809'] },
+  { name: '3 Jalan Hajijah (Landbay)', fee: SPECIAL_VENUE_REDUCED_FEE, codes: ['468698', '468700', '468702', '468704', '468706'] }
+];
+
+const BELMONT_RANGE = [269853, 269916];
+
+const normalizePostalCode = (value) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 6) return null;
+  return digits.slice(0, 6);
+};
+
+const formatAddressWithPostalCode = (address, postalCode) => {
+  const trimmedAddress = String(address || '').trim();
+  if (!postalCode) return trimmedAddress;
+  if (!trimmedAddress) return postalCode;
+  const addressDigits = trimmedAddress.replace(/\D/g, '');
+  if (addressDigits.includes(postalCode)) {
+    return trimmedAddress;
+  }
+  return `${trimmedAddress}, Singapore ${postalCode}`;
+};
+
+const getSpecialVenueSurcharge = (postalCode, orderSubtotal) => {
+  if (!postalCode) return { fee: 0, label: null };
+  const normalized = normalizePostalCode(postalCode);
+  if (!normalized) return { fee: 0, label: null };
+  const numericCode = Number.parseInt(normalized, 10);
+
+  if (numericCode >= BELMONT_RANGE[0] && numericCode <= BELMONT_RANGE[1]) {
+    const isLargeOrder = orderSubtotal >= BELMONT_LARGE_ORDER_THRESHOLD;
+    return {
+      fee: isLargeOrder ? BELMONT_LARGE_ORDER_FEE : BELMONT_BASE_FEE,
+      label: isLargeOrder ? 'Belmont Road (large order)' : 'Belmont Road'
+    };
+  }
+
+  for (const rule of SPECIAL_VENUE_RULES) {
+    if (rule.codes && rule.codes.includes(normalized)) {
+      return { fee: rule.fee, label: rule.name };
+    }
+    if (rule.prefixes && rule.prefixes.some(prefix => normalized.startsWith(prefix))) {
+      return { fee: rule.fee, label: rule.name };
+    }
+    if (rule.ranges && rule.ranges.some(([min, max]) => numericCode >= min && numericCode <= max)) {
+      return { fee: rule.fee, label: rule.name };
+    }
+  }
+
+  return { fee: 0, label: null };
+};
+
+const buildOrderNotes = (customerNotes, specialVenueInfo) => {
+  const notes = [];
+  const trimmedNotes = String(customerNotes || '').trim();
+  if (trimmedNotes) notes.push(trimmedNotes);
+  if (specialVenueInfo?.fee > 0) {
+    notes.push(`Special venue surcharge applied: $${specialVenueInfo.fee} (${specialVenueInfo.label}).`);
+  }
+  return notes.join('\n');
+};
 
 function Checkout() {
   const { cartItems, totalPrice, clearCart } = useCart();
@@ -24,6 +104,7 @@ function Checkout() {
     eventDate: '',
     eventTime: '',
     eventAddress: '',
+    postalCode: '',
     notes: ''
   });
   const [orderCreated, setOrderCreated] = useState(false);
@@ -34,8 +115,11 @@ function Checkout() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [displayOrderNumber, setDisplayOrderNumber] = useState(null);
 
+  const normalizedPostalCode = normalizePostalCode(formData.postalCode || formData.eventAddress);
+  const specialVenueInfo = getSpecialVenueSurcharge(normalizedPostalCode, totalPrice);
+  const specialVenueFee = specialVenueInfo.fee;
   const deliveryFee = totalPrice >= DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const baseTotal = totalPrice + deliveryFee;
+  const baseTotal = totalPrice + deliveryFee + specialVenueFee;
   const cardFeeRaw = paymentMethod === 'stripe'
     ? (baseTotal * CARD_FEE_RATE + CARD_FEE_FIXED)
     : 0;
@@ -88,6 +172,12 @@ function Checkout() {
       return;
     }
 
+    if (!normalizedPostalCode) {
+      setError('Please enter a valid 6-digit postal code.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Create order in database
       const orderData = {
@@ -96,8 +186,8 @@ function Checkout() {
         customer_phone: formData.phone,
         event_date: formData.eventDate,
         event_time: formData.eventTime,
-        event_address: formData.eventAddress,
-        notes: formData.notes,
+        event_address: formatAddressWithPostalCode(formData.eventAddress, normalizedPostalCode),
+        notes: buildOrderNotes(formData.notes, specialVenueInfo),
         total_amount: orderTotal,
         payment_method: paymentMethod,
         status: 'pending',
@@ -198,6 +288,15 @@ function Checkout() {
           lineItems.push({
             name: 'Delivery Fee',
             price: deliveryFee,
+            quantity: 1
+          });
+        }
+        if (specialVenueFee > 0) {
+          lineItems.push({
+            name: specialVenueInfo.label
+              ? `Special Venue Surcharge (${specialVenueInfo.label})`
+              : 'Special Venue Surcharge',
+            price: specialVenueFee,
             quantity: 1
           });
         }
@@ -580,6 +679,20 @@ function Checkout() {
                   {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
                 </span>
               </div>
+              {specialVenueFee > 0 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '0.5rem',
+                  fontSize: '0.95rem',
+                  color: '#666'
+                }}>
+                  <span>Special Venue Surcharge{specialVenueInfo.label ? ` (${specialVenueInfo.label})` : ''}:</span>
+                  <span style={{ color: '#666' }}>
+                    ${specialVenueFee.toFixed(2)}
+                  </span>
+                </div>
+              )}
               {paymentMethod === 'stripe' && (
                 <div style={{
                   display: 'flex',
@@ -607,7 +720,7 @@ function Checkout() {
                 </span>
               </div>
               <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#777' }}>
-                Free delivery for orders $500 and above.
+                Free delivery for orders $500 and above. Special venue surcharges apply based on postal code.
               </p>
             </div>
 
@@ -678,7 +791,7 @@ function Checkout() {
               </div>
 
               <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#777' }}>
-                A $40 delivery fee applies to orders below $500 for all payment methods. Card payments incur a 3.4% + $0.50 fee.
+                A $40 delivery fee applies to orders below $500 for all payment methods. Special venue surcharges may apply. Card payments incur a 3.4% + $0.50 fee.
               </p>
             </div>
           </div>
@@ -762,6 +875,22 @@ function Checkout() {
                     onChange={handleInputChange}
                     required
                     placeholder="Full address for BBQ setup"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Postal Code *</label>
+                  <input
+                    type="text"
+                    name="postalCode"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                    required
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    placeholder="6-digit postal code"
                   />
                 </div>
 

@@ -12,10 +12,13 @@ const VIDEO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/up
  * @param {function} onProgress - Optional progress callback (0-100)
  * @returns {Promise<{url: string, publicId: string, width: number, height: number} | null>}
  */
-async function uploadFileToCloudinary(file, uploadUrl, onProgress = null) {
+async function uploadFileToCloudinary(file, uploadUrl, onProgress = null, options = {}) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
+  if (options.folder) {
+    formData.append('folder', options.folder);
+  }
 
   try {
     const response = await new Promise((resolve, reject) => {
@@ -54,8 +57,8 @@ async function uploadFileToCloudinary(file, uploadUrl, onProgress = null) {
   }
 }
 
-export async function uploadToCloudinary(file, onProgress = null) {
-  const response = await uploadFileToCloudinary(file, UPLOAD_URL, onProgress);
+export async function uploadToCloudinary(file, onProgress = null, options = {}) {
+  const response = await uploadFileToCloudinary(file, UPLOAD_URL, onProgress, options);
   if (!response) return null;
 
   return {
@@ -72,7 +75,7 @@ export async function uploadToCloudinary(file, onProgress = null) {
  * @param {function} onProgress - Optional progress callback (0-100)
  * @returns {Promise<{url: string, publicId: string, width?: number, height?: number, duration?: number, resourceType: string} | null>}
  */
-export async function uploadMediaToCloudinary(file, onProgress = null) {
+export async function uploadMediaToCloudinary(file, onProgress = null, options = {}) {
   const mediaType = getMediaType(file);
   if (!mediaType) {
     console.error('Unsupported media type for Cloudinary upload');
@@ -80,7 +83,7 @@ export async function uploadMediaToCloudinary(file, onProgress = null) {
   }
 
   const uploadUrl = mediaType === 'video' ? VIDEO_UPLOAD_URL : UPLOAD_URL;
-  const response = await uploadFileToCloudinary(file, uploadUrl, onProgress);
+  const response = await uploadFileToCloudinary(file, uploadUrl, onProgress, options);
   if (!response) return null;
 
   return {
