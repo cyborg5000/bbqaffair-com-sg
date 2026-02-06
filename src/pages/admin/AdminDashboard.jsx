@@ -98,6 +98,10 @@ export default function AdminDashboard() {
                 <span>📦</span>
                 <p>View Orders</p>
               </a>
+              <a href="/admin/testimonials" className="action-card">
+                <span>💬</span>
+                <p>Manage Testimonials</p>
+              </a>
             </div>
           </div>
         </div>

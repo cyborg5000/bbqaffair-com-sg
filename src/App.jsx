@@ -19,6 +19,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminCategories from './pages/admin/AdminCategories';
+import AdminTestimonials from './pages/admin/AdminTestimonials';
 import AdminOrders from './pages/admin/AdminOrders';
 import './styles/main.css';
 import './styles/admin.css';
@@ -60,6 +61,11 @@ function AppContent() {
           <Route path="/admin/categories" element={
             <ProtectedRoute>
               <AdminCategories />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/testimonials" element={
+            <ProtectedRoute>
+              <AdminTestimonials />
             </ProtectedRoute>
           } />
           <Route path="/admin/orders" element={
