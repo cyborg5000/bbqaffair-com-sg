@@ -16,6 +16,7 @@ export default function AdminLayout({ children }) {
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/products', label: 'Products', icon: '🍖' },
+    { path: '/admin/categories', label: 'Categories', icon: '🏷️' },
     { path: '/admin/orders', label: 'Orders', icon: '📋' },
     { path: '/', label: 'View Website', icon: '🌐' },
   ];

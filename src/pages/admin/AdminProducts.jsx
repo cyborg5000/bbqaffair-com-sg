@@ -12,6 +12,31 @@ export default function AdminProducts() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [categories, setCategories] = useState([]);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const pageSize = 10;
+  const [exporting, setExporting] = useState(false);
+  const [productIndex, setProductIndex] = useState({});
+  const [importFileInputKey, setImportFileInputKey] = useState(0);
+  const [importState, setImportState] = useState({
+    step: 'idle', // idle | map | preview
+    rawRows: [],
+    columns: [],
+    mapping: {
+      name: '',
+      price: '',
+      category: '',
+      description: '',
+      image_url: '',
+      is_active: '',
+      unit_label: '',
+    },
+    previewProducts: [],
+    duplicates: [],
+    loading: false,
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -28,19 +53,59 @@ export default function AdminProducts() {
   });
 
   useEffect(() => {
-    fetchProducts();
     fetchCategories();
+    fetchProductIndex();
   }, []);
 
   useEffect(() => {
+    // reset import modal when closing
+    if (importState.step === 'idle') {
+      setImportState((prev) => ({
+        ...prev,
+        rawRows: [],
+        columns: [],
+        mapping: {
+          name: '',
+          price: '',
+          category: '',
+          description: '',
+          image_url: '',
+          is_active: '',
+          unit_label: '',
+        },
+        previewProducts: [],
+        duplicates: [],
+        loading: false,
+      }));
+    }
+  }, [importState.step]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    fetchProducts(page, debouncedSearch);
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
     if (!editingProduct || categories.length === 0) return;
-    const exists = categories.some(cat => cat.name === editingProduct.category);
+    const exists = categories.some(cat => cat.name === editingProduct.category && cat.is_active !== false);
     setUseCustomCategory(!exists);
   }, [categories, editingProduct]);
 
-  async function fetchProducts() {
+  async function fetchProducts(currentPage = page, term = debouncedSearch) {
+    setLoading(true);
+    const from = (currentPage - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -60,15 +125,51 @@ export default function AdminProducts() {
             display_order,
             is_active
           )
-        `)
-        .order('created_at', { ascending: false });
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (term && term.trim()) {
+        const trimmed = term.trim();
+        query = query.or(`name.ilike.%${trimmed}%,category.ilike.%${trimmed}%`);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
-      setProducts(data || []);
+      const list = data || [];
+      if (list.length === 0 && currentPage > 1 && (count || 0) > 0) {
+        setLoading(false);
+        setPage(currentPage - 1);
+        return;
+      }
+
+      setProducts(list);
+      setTotalProducts(count || 0);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchProductIndex() {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name');
+      if (error) throw error;
+      const index = {};
+      (data || []).forEach((p) => {
+        if (p.name) {
+          index[p.name.trim().toLowerCase()] = p.id;
+        }
+      });
+      setProductIndex(index);
+      return index;
+    } catch (error) {
+      console.error('Error loading product index:', error);
+      return {};
     }
   }
 
@@ -77,7 +178,6 @@ export default function AdminProducts() {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('is_active', true)
         .order('display_order', { ascending: true });
 
       if (error) throw error;
@@ -88,9 +188,227 @@ export default function AdminProducts() {
     }
   }
 
+  function parseCsvLine(line) {
+    const cells = [];
+    let cell = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        cells.push(cell.trim());
+        cell = '';
+      } else {
+        cell += char;
+      }
+    }
+    cells.push(cell.trim());
+    return cells;
+  }
+
+  function parseCsv(text) {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length < 2) return { columns: [], rows: [] };
+
+    const columns = parseCsvLine(lines[0]);
+    const rows = lines.slice(1).map((line) => {
+      const cells = parseCsvLine(line);
+      const row = {};
+      columns.forEach((column, idx) => {
+        row[column] = cells[idx] ?? '';
+      });
+      return row;
+    });
+
+    return { columns, rows };
+  }
+
+  function normalizeBoolean(value, defaultValue = true) {
+    if (value === undefined || value === null || value === '') return defaultValue;
+    const normalized = String(value).trim().toLowerCase();
+    if (['true', '1', 'yes', 'y', 'active'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'n', 'inactive'].includes(normalized)) return false;
+    return defaultValue;
+  }
+
+  function openImportMapping(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = String(event.target?.result || '');
+      const { columns, rows } = parseCsv(text);
+      if (rows.length === 0) {
+        alert('Import file has no rows.');
+        return;
+      }
+
+      const findColumn = (candidates) => columns.find((col) => {
+        const normalized = col.toLowerCase();
+        return candidates.some((candidate) => normalized.includes(candidate));
+      }) || '';
+
+      setImportState((prev) => ({
+        ...prev,
+        step: 'map',
+        columns,
+        rawRows: rows,
+        mapping: {
+          name: findColumn(['name', 'product']),
+          price: findColumn(['price', 'amount']),
+          category: findColumn(['category']),
+          description: findColumn(['description']),
+          image_url: findColumn(['image', 'image_url', 'photo']),
+          is_active: findColumn(['is_active', 'active', 'status']),
+          unit_label: findColumn(['unit_label', 'unit']),
+        },
+      }));
+    };
+    reader.readAsText(file);
+  }
+
+  async function buildImportPreview() {
+    const { rawRows, mapping } = importState;
+    if (!mapping.name || !mapping.price || !mapping.category) {
+      alert('Please map name, price, and category before preview.');
+      return;
+    }
+
+    const previewProducts = rawRows
+      .map((row) => ({
+        name: String(row[mapping.name] ?? '').trim(),
+        price: parseFloat(row[mapping.price]) || 0,
+        category: String(row[mapping.category] ?? '').trim(),
+        description: mapping.description ? String(row[mapping.description] ?? '') : '',
+        image_url: mapping.image_url ? String(row[mapping.image_url] ?? '') : '',
+        is_active: mapping.is_active ? normalizeBoolean(row[mapping.is_active], true) : true,
+        unit_label: mapping.unit_label ? String(row[mapping.unit_label] ?? '').trim() : null,
+        has_options: false,
+      }))
+      .filter((row) => row.name.length > 0);
+
+    if (previewProducts.length === 0) {
+      alert('No valid product rows after mapping.');
+      return;
+    }
+
+    const latestIndex = await fetchProductIndex();
+    const duplicates = previewProducts.filter((row) => latestIndex[row.name.toLowerCase()]);
+
+    setImportState((prev) => ({
+      ...prev,
+      previewProducts,
+      duplicates,
+      step: 'preview',
+    }));
+  }
+
+  async function confirmImport() {
+    const { previewProducts, duplicates } = importState;
+    if (previewProducts.length === 0) return;
+
+    if (duplicates.length > 0) {
+      const approved = confirm(
+        `${duplicates.length} products already exist by name. Overwrite existing products with the imported rows?`
+      );
+      if (!approved) return;
+    }
+
+    setImportState((prev) => ({ ...prev, loading: true }));
+
+    try {
+      const latestIndex = await fetchProductIndex();
+      for (const row of previewProducts) {
+        const existingId = latestIndex[row.name.toLowerCase()];
+        if (existingId) {
+          const { error } = await supabase
+            .from('products')
+            .update({
+              name: row.name,
+              price: row.price,
+              category: row.category,
+              description: row.description,
+              image_url: row.image_url,
+              is_active: row.is_active,
+              unit_label: row.unit_label || null,
+              has_options: false,
+            })
+            .eq('id', existingId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('products')
+            .insert([{
+              name: row.name,
+              price: row.price,
+              category: row.category,
+              description: row.description,
+              image_url: row.image_url,
+              is_active: row.is_active,
+              unit_label: row.unit_label || null,
+              has_options: false,
+            }]);
+          if (error) throw error;
+        }
+      }
+
+      await fetchProductIndex();
+      await fetchProducts(1, debouncedSearch);
+      setPage(1);
+      setImportState((prev) => ({ ...prev, loading: false, step: 'idle' }));
+      setImportFileInputKey((prev) => prev + 1);
+      alert('Product import completed.');
+    } catch (error) {
+      console.error('Error importing products:', error);
+      alert('Error importing products: ' + error.message);
+      setImportState((prev) => ({ ...prev, loading: false }));
+    }
+  }
+
+  async function exportProductsCsv() {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('name, price, category, description, image_url, is_active, unit_label')
+        .order('name', { ascending: true });
+      if (error) throw error;
+
+      const headers = ['name', 'price', 'category', 'description', 'image_url', 'is_active', 'unit_label'];
+      const rows = (data || []).map((product) =>
+        headers.map((header) => {
+          const value = product[header] ?? '';
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',')
+      );
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `products-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting products:', error);
+      alert('Error exporting products: ' + error.message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function handleEdit(product) {
     setEditingProduct(product);
-    const categoryExists = categories.some(cat => cat.name === product.category);
+    const categoryExists = categories.some(cat => cat.name === product.category && cat.is_active !== false);
     setUseCustomCategory(!categoryExists);
     // Sort options by display_order
     const sortedOptions = (product.product_options || [])
@@ -305,6 +623,7 @@ export default function AdminProducts() {
       }
 
       setShowForm(false);
+      fetchProductIndex();
       fetchProducts();
     } catch (error) {
       console.error('Error saving product:', error);
@@ -400,6 +719,7 @@ export default function AdminProducts() {
         .eq('id', id);
 
       if (error) throw error;
+      fetchProductIndex();
       fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -437,6 +757,7 @@ export default function AdminProducts() {
 
       if (error) throw error;
       setSelectedIds([]);
+      fetchProductIndex();
       fetchProducts();
     } catch (error) {
       console.error('Error deleting products:', error);
@@ -446,6 +767,8 @@ export default function AdminProducts() {
 
   const isAllSelected = products.length > 0 && selectedIds.length === products.length;
   const isIndeterminate = selectedIds.length > 0 && selectedIds.length < products.length;
+  const activeCategories = categories.filter((category) => category.is_active !== false);
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
 
   if (loading) return <AdminLayout><div className="loading">Loading...</div></AdminLayout>;
 
@@ -465,6 +788,145 @@ export default function AdminProducts() {
             <button onClick={handleBulkDelete} className="btn-delete-bulk">
               🗑️ Delete Selected
             </button>
+          </div>
+        )}
+
+        <div className="table-toolbar">
+          <input
+            type="search"
+            placeholder="Search products or categories"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="table-search"
+          />
+          <div className="table-toolbar-actions">
+            <label className="btn-secondary toolbar-btn" style={{ margin: 0 }}>
+              Import CSV
+              <input
+                key={importFileInputKey}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: 'none' }}
+                onChange={(e) => openImportMapping(e.target.files?.[0])}
+              />
+            </label>
+            <button type="button" className="btn-secondary toolbar-btn" onClick={exportProductsCsv} disabled={exporting}>
+              {exporting ? 'Exporting...' : 'Export CSV'}
+            </button>
+          </div>
+        </div>
+
+        {importState.step !== 'idle' && (
+          <div className="modal-overlay" onClick={() => setImportState((prev) => ({ ...prev, step: 'idle' }))}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h2>Import Products</h2>
+
+              {importState.step === 'map' && (
+                <>
+                  <p>Map CSV columns to product fields before preview.</p>
+                  {[
+                    ['name', 'Product Name (required)'],
+                    ['price', 'Price (required)'],
+                    ['category', 'Category (required)'],
+                    ['description', 'Description'],
+                    ['image_url', 'Image URL'],
+                    ['is_active', 'Active Status'],
+                    ['unit_label', 'Unit Label'],
+                  ].map(([field, label]) => (
+                    <div className="form-group" key={field}>
+                      <label>{label}</label>
+                      <select
+                        value={importState.mapping[field] || ''}
+                        onChange={(e) =>
+                          setImportState((prev) => ({
+                            ...prev,
+                            mapping: {
+                              ...prev.mapping,
+                              [field]: e.target.value,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="">Not mapped</option>
+                        {importState.columns.map((column) => (
+                          <option key={column} value={column}>
+                            {column}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setImportState((prev) => ({ ...prev, step: 'idle' }))}
+                    >
+                      Cancel
+                    </button>
+                    <button type="button" className="btn-primary" onClick={buildImportPreview}>
+                      Preview Import
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {importState.step === 'preview' && (
+                <>
+                  <p>
+                    {importState.previewProducts.length} rows ready. {importState.duplicates.length} matching names
+                    found in existing products.
+                  </p>
+                  <div style={{ maxHeight: '320px', overflow: 'auto', border: '1px solid #e5e5e5', borderRadius: '8px' }}>
+                    <table className="products-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importState.previewProducts.slice(0, 100).map((row, idx) => {
+                          const overwrite = !!productIndex[row.name.toLowerCase()];
+                          return (
+                            <tr key={`${row.name}-${idx}`}>
+                              <td>{row.name}</td>
+                              <td>{row.category}</td>
+                              <td>${Number(row.price || 0).toFixed(2)}</td>
+                              <td>{overwrite ? 'Overwrite' : 'Create'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {importState.previewProducts.length > 100 && (
+                    <small style={{ display: 'block', marginTop: '0.5rem', color: '#666' }}>
+                      Showing first 100 preview rows.
+                    </small>
+                  )}
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setImportState((prev) => ({ ...prev, step: 'map' }))}
+                    >
+                      Back to Mapping
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={confirmImport}
+                      disabled={importState.loading}
+                    >
+                      {importState.loading ? 'Importing...' : 'Confirm Import'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -505,7 +967,7 @@ export default function AdminProducts() {
 
                   <div className="form-group">
                     <label>Category</label>
-                    {categories.length > 0 ? (
+                    {activeCategories.length > 0 ? (
                       <>
                         <select
                           value={useCustomCategory ? '__custom__' : formData.category}
@@ -522,7 +984,7 @@ export default function AdminProducts() {
                           required={!useCustomCategory}
                         >
                           <option value="">Select a category</option>
-                          {categories.map((cat) => (
+                          {activeCategories.map((cat) => (
                             <option key={cat.id} value={cat.name}>
                               {cat.name}
                             </option>
@@ -538,6 +1000,11 @@ export default function AdminProducts() {
                             style={{ marginTop: '0.5rem' }}
                             required
                           />
+                        )}
+                        {!useCustomCategory && formData.category && !activeCategories.some(cat => cat.name === formData.category) && (
+                          <small style={{ color: '#b45309', display: 'block', marginTop: '0.25rem' }}>
+                            Current category is inactive. Choose an active one or use manual entry.
+                          </small>
                         )}
                       </>
                     ) : (
@@ -873,6 +1340,30 @@ export default function AdminProducts() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="pagination-bar">
+          <div className="pagination-info">
+            Page {page} of {totalPages} · {totalProducts} products
+          </div>
+          <div className="pagination-controls">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="btn-secondary"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="btn-secondary"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </AdminLayout>

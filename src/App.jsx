@@ -18,6 +18,7 @@ import ProductDetail from './pages/ProductDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
+import AdminCategories from './pages/admin/AdminCategories';
 import AdminOrders from './pages/admin/AdminOrders';
 import './styles/main.css';
 import './styles/admin.css';
@@ -28,9 +29,9 @@ function AppContent() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className="app">
-      <Navigation />
-      <Cart />
+    <div className={`app ${isAdminRoute ? 'app-admin' : ''}`}>
+      {!isAdminRoute && <Navigation />}
+      {!isAdminRoute && <Cart />}
       <main>
         <Routes>
           {/* Public Routes */}
@@ -54,6 +55,11 @@ function AppContent() {
           <Route path="/admin/products" element={
             <ProtectedRoute>
               <AdminProducts />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/categories" element={
+            <ProtectedRoute>
+              <AdminCategories />
             </ProtectedRoute>
           } />
           <Route path="/admin/orders" element={
