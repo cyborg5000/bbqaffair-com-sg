@@ -5,6 +5,10 @@ import { fetchMenuPackages, fetchAddOns } from '../data/menu';
 import { Star, ShoppingCart, Eye } from 'lucide-react';
 
 function MenuSection() {
+  // Temporarily hidden per request.
+  const isHidden = true;
+  if (isHidden) return null;
+
   const { addToCart } = useCart();
   const [packages, setPackages] = useState([]);
   const [addOns, setAddOns] = useState([]);

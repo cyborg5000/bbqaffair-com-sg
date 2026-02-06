@@ -1,6 +1,10 @@
 import { staticAddOns as addOns } from '../data/menu';
 
 function AddOns() {
+  // Temporarily hidden per request.
+  const isHidden = true;
+  if (isHidden) return null;
+
   return (
     <section className="addons-section">
       <h2 className="section-title">Add-On Services</h2>
